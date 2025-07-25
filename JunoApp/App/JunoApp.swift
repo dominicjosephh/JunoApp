@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct JunoVoxApp: App {
+struct JunoApp: App {
     @StateObject private var appState = AppState()
 
     var body: some Scene {
