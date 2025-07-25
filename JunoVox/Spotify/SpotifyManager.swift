@@ -30,7 +30,7 @@ final class SpotifyManager: ObservableObject {
     }
 
     func next() {
-        print("Stub next track")
+        Log.d("Stub next track")
     }
 }
 

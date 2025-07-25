@@ -78,7 +78,7 @@ final class ConversationViewModel: ObservableObject {
             if let reply = voiceResp.reply {
                 let tts = try await JunoAPIClient.shared.tts(text: reply)
                 if let path = tts.audio_url,
-                   let url = URL(string: AppConfig.baseURL.absoluteString + path) {
+                   let url = URL(string: AppConfig.baseURL.appendingPathComponent(path).absoluteString) {
                     play(url)
                 }
             }

@@ -40,7 +40,7 @@ class ChatViewModel: ObservableObject {
             // TTS
             let ttsResp = try await JunoAPIClient.shared.tts(text: replyText)
             if let urlStr = ttsResp.audio_url,
-               let url = URL(string: AppConfig.baseURL.absoluteString + urlStr) {
+               let url = URL(string: urlStr, relativeTo: AppConfig.baseURL)?.absoluteURL {
                 junoMessage.audioURL = url
                 if let idx = messages.firstIndex(where: { $0.id == junoMessage.id }) {
                     messages[idx] = junoMessage

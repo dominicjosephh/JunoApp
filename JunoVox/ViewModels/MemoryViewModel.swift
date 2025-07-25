@@ -13,7 +13,7 @@ final class MemoryViewModel: ObservableObject {
             let data = try await JunoAPIClient.shared.getMemorySummary()
             summary = data
         } catch {
-            print("Error fetching memory: \(error.localizedDescription)")
+            Log.e("Error fetching memory: \(error.localizedDescription)")
             summary = nil
         }
     }

@@ -32,8 +32,11 @@ struct MessageBubble: View {
         .padding(.horizontal)
     }
 
+    @State private var audioPlayer: AVPlayer?
+
     private func playAudio(url: URL) {
-        let player = AVPlayer(url: url)
-        player.play()
+        audioPlayer?.pause()
+        audioPlayer = AVPlayer(url: url)
+        audioPlayer?.play()
     }
 }
