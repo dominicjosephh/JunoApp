@@ -2,7 +2,7 @@ import Foundation
 import AVFoundation
 
 public enum AppConfig {
-    public static var baseURL: URL = URL(string: "http://162.243.222.203:8000")!
+    public static var baseURL: URL = URL(string: "https://djpresence.com")!
     public static let clientVersion: String = "ios@1.0.0"
 }
 
