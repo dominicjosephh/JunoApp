@@ -60,29 +60,68 @@ struct ChatView: View {
             // MARK: - Input
 
             Divider()
-            HStack {
-                if #available(iOS 16.0, *) {
-                    TextField("Type a message...", text: $messageText, axis: .vertical)
-                        .textFieldStyle(.roundedBorder)
-                        .lineLimit(1 ... 4)
-                } else {
-                    TextField("Type a message...", text: $messageText)
-                        .textFieldStyle(.roundedBorder)
+            VStack(spacing: 8) {
+                // Voice recording status
+                if viewModel.isVoiceRecording {
+                    VoiceRecordingIndicator(
+                        audioLevel: viewModel.voiceRecordingLevel,
+                        isRecording: viewModel.isVoiceRecording
+                    )
                 }
+                
+                // Error message
+                if let errorMessage = viewModel.voiceErrorMessage {
+                    Text(errorMessage)
+                        .font(.caption)
+                        .foregroundColor(.red)
+                        .padding(.horizontal)
+                }
+                
+                // Input controls
+                HStack {
+                    // Voice recording button
+                    Button {
+                        viewModel.toggleVoiceRecording()
+                    } label: {
+                        Image(systemName: viewModel.isVoiceRecording ? "mic.fill" : "mic")
+                            .font(.system(size: 20))
+                            .foregroundColor(viewModel.isVoiceRecording ? .red : .blue)
+                            .scaleEffect(viewModel.isVoiceRecording ? 1.2 : 1.0)
+                            .animation(.easeInOut(duration: 0.2), value: viewModel.isVoiceRecording)
+                    }
+                    .disabled(viewModel.voicePermissionStatus != .authorized)
+                    .padding(.trailing, 6)
+                    
+                    // Text input
+                    if #available(iOS 16.0, *) {
+                        TextField("Type a message...", text: $messageText, axis: .vertical)
+                            .textFieldStyle(.roundedBorder)
+                            .lineLimit(1 ... 4)
+                            .disabled(viewModel.isVoiceRecording)
+                    } else {
+                        TextField("Type a message...", text: $messageText)
+                            .textFieldStyle(.roundedBorder)
+                            .disabled(viewModel.isVoiceRecording)
+                    }
 
-                Button {
-                    sendMessage()
-                } label: {
-                    Image(systemName: "paperplane.fill")
-                        .font(.system(size: 20))
+                    // Send button
+                    Button {
+                        sendMessage()
+                    } label: {
+                        Image(systemName: "paperplane.fill")
+                            .font(.system(size: 20))
+                    }
+                    .padding(.leading, 6)
+                    .disabled(messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isVoiceRecording)
                 }
-                .padding(.leading, 6)
-                .disabled(messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
             .padding(.horizontal)
             .padding(.bottom, 8)
         }
         .background(Color.gray.opacity(0.05))
+        .onAppear {
+            viewModel.requestVoicePermissions()
+        }
 
         .overlay {
             if viewModel.isLoading {

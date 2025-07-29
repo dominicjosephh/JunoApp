@@ -1,6 +1,7 @@
 import AVFoundation
 import Foundation
 import SwiftUI
+import Combine
 
 @MainActor
 final class ChatViewModel: ObservableObject {
@@ -10,6 +11,11 @@ final class ChatViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var speakReplies: Bool = true
 
+    // Voice Recording
+    @Published var isVoiceRecording = false
+    @Published var voiceRecordingLevel: Float = 0.0
+    @Published var voiceErrorMessage: String?
+
     // Playback state
     @Published var currentlyPlayingMessageID: UUID? = nil
     @Published var isGlobalPlaying: Bool = false
@@ -18,6 +24,9 @@ final class ChatViewModel: ObservableObject {
     private var player: AVPlayer?
     private var timeControlObserver: NSKeyValueObservation?
     private var endObserver: Any?
+    
+    // Voice Recording
+    private let voiceRecordingManager = VoiceRecordingManager()
 
     var isSpeaking: Bool { player?.timeControlStatus == .playing }
 
@@ -25,7 +34,37 @@ final class ChatViewModel: ObservableObject {
 
     init() {
         configureAudioSession()
+        setupVoiceRecordingObservers()
     }
+    
+    // MARK: - Voice Recording Setup
+    
+    private func setupVoiceRecordingObservers() {
+        // Observe voice recording state
+        voiceRecordingManager.$isRecording
+            .assign(to: &$isVoiceRecording)
+        
+        voiceRecordingManager.$audioLevel
+            .assign(to: &$voiceRecordingLevel)
+            
+        voiceRecordingManager.$errorMessage
+            .assign(to: &$voiceErrorMessage)
+            
+        // Observe transcribed text and process it when recording stops
+        voiceRecordingManager.$transcribedText
+            .combineLatest(voiceRecordingManager.$isRecording)
+            .sink { [weak self] transcribedText, isRecording in
+                guard let self = self else { return }
+                
+                // When recording stops and we have transcribed text, send it as a message
+                if !isRecording && !transcribedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    self.sendUserMessage(transcribedText)
+                }
+            }
+            .store(in: &cancellables)
+    }
+    
+    private var cancellables = Set<AnyCancellable>()
 
     // MARK: - Audio Session
 
@@ -85,6 +124,38 @@ final class ChatViewModel: ObservableObject {
     func stopSpeaking() {
         pause()
         currentlyPlayingMessageID = nil
+    }
+    
+    // MARK: - Voice Recording
+    
+    func startVoiceRecording() {
+        Task {
+            do {
+                try await voiceRecordingManager.startRecording()
+            } catch {
+                voiceErrorMessage = error.localizedDescription
+            }
+        }
+    }
+    
+    func stopVoiceRecording() {
+        voiceRecordingManager.stopRecording()
+    }
+    
+    func toggleVoiceRecording() {
+        if isVoiceRecording {
+            stopVoiceRecording()
+        } else {
+            startVoiceRecording()
+        }
+    }
+    
+    func requestVoicePermissions() {
+        voiceRecordingManager.requestPermissions()
+    }
+    
+    var voicePermissionStatus: VoiceRecordingManager.PermissionStatus {
+        voiceRecordingManager.permissionStatus
     }
 
     // MARK: - Networking / TTS
@@ -227,6 +298,7 @@ final class ChatViewModel: ObservableObject {
         if let endObserver = endObserver {
             NotificationCenter.default.removeObserver(endObserver)
         }
+        cancellables.removeAll()
     }
 }
 
