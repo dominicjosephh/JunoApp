@@ -1,197 +1,246 @@
 import AVFoundation
 import Foundation
-import SwiftUI
+
+struct ConversationTurn: Identifiable {
+    let id = UUID()
+    var userText: String?
+    var junoText: String?
+    var detectedEmotion: String?
+    var adaptedMode: String?
+}
 
 @MainActor
-final class ChatViewModel: ObservableObject {
-    // UI
-    @Published var messages: [ChatMessage] = []
-    @Published var persona: PersonaMode = .Base
-    @Published var isLoading = false
-    @Published var speakReplies: Bool = true
+final class ConversationViewModel: ObservableObject {
+    @Published var turns: [ConversationTurn] = []
+    @Published var isRecording: Bool = false
+    @Published var uiStateText: String = "Tap to talk"
+    @Published var lastAdaptedMode: String?
+    @Published var showingError: Bool = false
+    @Published var lastErrorMessage: String?
 
-    // Playback state
-    @Published var currentlyPlayingMessageID: UUID? = nil
-    @Published var isGlobalPlaying: Bool = false
-
-    // Audio
+    private let recorder = AudioRecorder()
     private var player: AVPlayer?
-    private var timeControlObserver: NSKeyValueObservation?
-    private var endObserver: Any?
+    private var statusObserver: NSKeyValueObservation?
+    private var timeControlStatusObserver: NSKeyValueObservation?
+    private var endTimeObserver: Any?
+    
+    // Debug properties
+    private var audioUrl: URL?
+    private var lastResponse: String?
 
-    var isSpeaking: Bool { player?.timeControlStatus == .playing }
-
-    // MARK: - Init
-
-    init() {
-        configureAudioSession()
-    }
-
-    // MARK: - Audio Session
-
-    private func configureAudioSession() {
-        let session = AVAudioSession.sharedInstance()
+    func startRecording() async {
         do {
-            // Use compatible options for .playback category
-            try session.setCategory(.playback, mode: .spokenAudio, options: [.duckOthers])
-            try session.setActive(true)
-            #if DEBUG
-                AudioDiagnostics.logSessionInfo(tag: "AFTER configureAudioSession()")
-            #endif
+            try await AudioSessionManager.shared.configureForVoice()
+            try recorder.start()
+            isRecording = true
+            uiStateText = "Listening… tap to stop"
         } catch {
-            #if DEBUG
-                debugPrint("⚠️ Audio session configuration failed: \(error)")
-            #endif
+            showError("Mic error: \(error.localizedDescription)")
         }
     }
 
-    // MARK: - Public API
-
-    func sendUserMessage(_ text: String) {
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-
-        messages.append(ChatMessage(text: trimmed, isUser: true))
-        Task { await fetchJunoReply(for: trimmed) }
-    }
-
-    func toggleGlobalPlayPause() {
-        if let player = player {
-            if player.timeControlStatus == .playing {
-                pause()
-            } else {
-                player.play()
-                isGlobalPlaying = true
-            }
-        } else {
-            if let lastAssistant = messages.last(where: { !$0.isUser && $0.audioURL != nil }),
-               let url = lastAssistant.audioURL {
-                play(url: url, messageID: lastAssistant.id)
-            }
-        }
-    }
-
-    func togglePlay(for message: ChatMessage) {
-        guard let url = message.audioURL else { return }
-        if isPlaying(message: message) {
-            pause()
-            currentlyPlayingMessageID = nil
-        } else {
-            play(url: url, messageID: message.id)
-        }
-    }
-
-    func isPlaying(message: ChatMessage) -> Bool {
-        currentlyPlayingMessageID == message.id && isSpeaking
-    }
-
-    func stopSpeaking() {
-        pause()
-        currentlyPlayingMessageID = nil
-    }
-
-    // MARK: - Networking / TTS
-
-    private func fetchJunoReply(for text: String) async {
-        isLoading = true
-        defer { isLoading = false }
+    func stopAndSend(persona: PersonaMode) async {
+        isRecording = false
+        uiStateText = "Processing…"
 
         do {
-            let chatReq = [ChatMessageDTO(role: "user", content: text)]
-            let response = try await JunoAPIClient.shared.chat(messages: chatReq, personality: persona)
-            guard let replyText = response.reply, !replyText.isEmpty else {
-                messages.append(ChatMessage(text: "(No reply)", isUser: false))
+            guard let data = recorder.stop() else {
+                showError("No audio data captured.")
+                uiStateText = "Tap to talk"
                 return
             }
+            
+            print("📊 Audio data size: \(data.count) bytes")
 
-            var junoMsg = ChatMessage(text: replyText, isUser: false)
-            messages.append(junoMsg)
+            let voiceResp = try await JunoAPIClient.shared.processVoice(
+                audioData: data,
+                filename: "voice.m4a",
+                mimeType: "audio/m4a",
+                voiceMode: persona
+            )
+            
+            print("📥 Voice response received: \(voiceResp.reply ?? "nil")")
 
-            guard speakReplies else { return }
+            var turn = ConversationTurn()
+            turn.userText = "🎤 (voice sent)" // Replace with transcript when backend returns it
 
-            let ttsResp = try await JunoAPIClient.shared.tts(text: replyText)
-            if let urlStr = ttsResp.audio_url, let url = URL(string: urlStr) {
-                #if DEBUG
-                    debugPrint("🔗 TTS URL: \(url.absoluteString)")
-                #endif
-
-                if let idx = messages.firstIndex(where: { $0.id == junoMsg.id }) {
-                    junoMsg.audioURL = url
-                    messages[idx] = junoMsg
-                }
-                play(url: url, messageID: junoMsg.id)
+            if let reply = voiceResp.reply {
+                turn.junoText = reply
+                lastResponse = reply
+            } else {
+                turn.junoText = "(No reply)"
             }
+
+            if let emo = voiceResp.emotion_data?.emotion {
+                turn.detectedEmotion = emo
+            }
+            if let adapted = voiceResp.adapted_voice_mode {
+                turn.adaptedMode = adapted
+                lastAdaptedMode = adapted
+            } else if let serverMode = voiceResp.voice_mode {
+                lastAdaptedMode = serverMode
+            }
+
+            turns.append(turn)
+
+            // TTS
+            if let reply = voiceResp.reply {
+                print("🎯 Getting TTS for: \(String(reply.prefix(20)))...")
+                
+                let ttsResp = try await JunoAPIClient.shared.tts(text: reply)
+                print("🔊 TTS response received: \(ttsResp)")
+                
+                if let urlStr = ttsResp.audio_url {
+                    print("🔗 Raw audio URL: \(urlStr)")
+                    
+                    let url: URL
+                    if urlStr.hasPrefix("http") {
+                        guard let absoluteURL = URL(string: urlStr) else {
+                            print("⚠️ Invalid absolute URL: \(urlStr)")
+                            throw APIClientError.badURL
+                        }
+                        url = absoluteURL
+                    } else {
+                        url = AppConfig.baseURL.appendingPathComponent(urlStr)
+                    }
+                    
+                    print("🎵 Final audio URL: \(url.absoluteString)")
+                    self.audioUrl = url
+                    
+                    // Test if the URL is accessible
+                    let request = URLRequest(url: url)
+                    let (_, response) = try await URLSession.shared.data(for: request)
+                    if let httpResponse = response as? HTTPURLResponse {
+                        print("🧪 URL test status code: \(httpResponse.statusCode)")
+                        if httpResponse.statusCode != 200 {
+                            print("⚠️ Audio URL returned non-200 status: \(httpResponse.statusCode)")
+                        }
+                    }
+                    
+                    // Configure audio session before playing
+                    try await AudioSessionManager.shared.configureForPlayback()
+                    
+                    await MainActor.run {
+                        self.playAudio(url)
+                    }
+                } else {
+                    print("⚠️ No audio URL in TTS response")
+                }
+            }
+
+            uiStateText = "Tap to talk"
         } catch {
-            messages.append(ChatMessage(text: "Error: \(error.localizedDescription)", isUser: false))
+            print("❌ Error processing voice: \(error)")
+            showError(error.localizedDescription)
+            uiStateText = "Tap to talk"
         }
     }
 
-    // MARK: - Playback
-
-    private func play(url: URL, messageID: UUID) {
-        pause() // stop any active playback
-
+    @MainActor
+    private func playAudio(_ url: URL) {
+        print("▶️ Starting audio playback for URL: \(url.absoluteString)")
+        
+        // Clean up previous observers
+        cleanupObservers()
+        
         let item = AVPlayerItem(url: url)
-        player = AVPlayer(playerItem: item)
-        currentlyPlayingMessageID = messageID
+        print("📝 Created AVPlayerItem for URL: \(url.lastPathComponent)")
 
-        #if DEBUG
-            AudioDiagnostics.logSessionInfo(tag: "BEFORE player.play()")
-        #endif
-
-        // Observe timeControlStatus to catch instant failures
-        timeControlObserver = player?.observe(\.timeControlStatus, options: [.new, .old]) { [weak self] player, _ in
-            guard let self else { return }
-            #if DEBUG
-                debugPrint("🎧 AVPlayer timeControlStatus: \(player.timeControlStatus.rawValue)")
-            #endif
+        if player == nil {
+            player = AVPlayer(playerItem: item)
+            print("🆕 Created new AVPlayer instance")
+        } else {
+            player?.replaceCurrentItem(with: item)
+            print("♻️ Replaced AVPlayer item")
         }
-
-        // Observe completion
-        endObserver = NotificationCenter.default.addObserver(
+        
+        // Debug check item properties
+        print("🔍 Player item duration: \(item.duration.seconds)")
+        print("🔍 Player item status: \(item.status.rawValue)")
+        
+        // Set up observers with modern KVO API
+        statusObserver = item.observe(\.status, options: [.new]) { item, _ in
+            Task { @MainActor in
+                switch item.status {
+                case .readyToPlay:
+                    print("✅ AVPlayer is ready to play")
+                case .failed:
+                    print("❌ AVPlayer failed with error: \(String(describing: item.error))")
+                    if let error = item.error {
+                        self.showError("Audio playback error: \(error.localizedDescription)")
+                    }
+                case .unknown:
+                    print("⚠️ AVPlayer status is unknown")
+                @unknown default:
+                    break
+                }
+            }
+        }
+        
+        timeControlStatusObserver = player?.observe(\.timeControlStatus, options: [.new]) { [weak self] player, _ in
+            Task { @MainActor in
+                print("🎮 Player timeControlStatus changed to: \(player.timeControlStatus.rawValue)")
+                switch player.timeControlStatus {
+                case .playing:
+                    print("🎶 AVPlayer is playing")
+                    self?.uiStateText = "Playing audio..."
+                case .paused:
+                    print("⏸️ AVPlayer is paused")
+                case .waitingToPlayAtSpecifiedRate:
+                    let reason = player.reasonForWaitingToPlay?.rawValue ?? "unknown"
+                    print("⏳ AVPlayer is waiting to play. Reason: \(reason)")
+                @unknown default:
+                    break
+                }
+            }
+        }
+        
+        // Add notification for when playback ends - must be on main actor
+        endTimeObserver = NotificationCenter.default.addObserver(
             forName: .AVPlayerItemDidPlayToEndTime,
             object: item,
             queue: .main
         ) { [weak self] _ in
-            guard let self else { return }
-            self.pause()
-            self.currentlyPlayingMessageID = nil
+            print("✅ Audio playback completed")
+            Task { @MainActor in
+                self?.uiStateText = "Tap to talk"
+                self?.cleanupObservers()
+            }
         }
 
+        print("▶️ Playing audio...")
         player?.play()
-        isGlobalPlaying = true
-
-        #if DEBUG
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                AudioDiagnostics.logSessionInfo(tag: "AFTER player.play()")
-                if let err = item.error {
-                    debugPrint("❌ Player item error: \(err.localizedDescription)")
-                }
-                debugPrint("⏱️ Player rate: \(self.player?.rate ?? -1)")
-            }
-        #endif
+    }
+    
+    @MainActor
+    private func cleanupObservers() {
+        print("🧹 Cleaning up player observers")
+        statusObserver = nil
+        timeControlStatusObserver = nil
+        
+        if let observer = endTimeObserver {
+            NotificationCenter.default.removeObserver(observer)
+            endTimeObserver = nil
+        }
     }
 
-    private func pause() {
-        player?.pause()
-        player = nil
-        isGlobalPlaying = false
-        timeControlObserver = nil
-        if let endObserver { NotificationCenter.default.removeObserver(endObserver) }
-        endObserver = nil
+    private func showError(_ msg: String) {
+        print("❌ Error: \(msg)")
+        lastErrorMessage = msg
+        showingError = true
     }
-
+    
     deinit {
-        timeControlObserver = nil
-        if let endObserver { NotificationCenter.default.removeObserver(endObserver) }
+        cleanupObservers()
     }
-}
-
-// MARK: - ChatMessage model (keep near ChatViewModel for clarity)
-
-struct ChatMessage: Identifiable, Equatable {
-    let id = UUID()
-    let text: String
-    let isUser: Bool
-    var audioURL: URL? = nil
+    
+    // Debug methods
+    func debugInfo() -> String {
+        var info = "--- Debug Info ---\n"
+        info += "Last URL: \(audioUrl?.absoluteString ?? "none")\n"
+        info += "Last Response: \(lastResponse?.prefix(50) ?? "none")\n"
+        info += "Audio Session Category: \(AVAudioSession.sharedInstance().category.rawValue)\n"
+        info += "Audio Session Active: \(try? AVAudioSession.sharedInstance().isOtherAudioPlaying)\n"
+        return info
+    }
 }
