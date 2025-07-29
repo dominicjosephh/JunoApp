@@ -1,6 +1,7 @@
 import AVFoundation
 import Foundation
 
+// Renamed to VoiceConversationTurn to avoid conflicts with other types
 struct VoiceConversationTurn: Identifiable {
     let id = UUID()
     var userText: String?

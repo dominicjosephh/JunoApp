@@ -7,7 +7,7 @@ struct AudioDebugView: View {
     @State private var showingLogs = false
     
     let testAudioUrl = URL(string: "https://www2.cs.uic.edu/~i101/SoundFiles/BabyElephantWalk60.wav")!
-    private var player: AVPlayer?
+    @State private var player: AVPlayer?
     
     var body: some View {
         Form {
@@ -42,7 +42,7 @@ struct AudioDebugView: View {
                 Button("Configure for Playback") {
                     Task {
                         do {
-                            try await AudioSessionManager.shared.configureForPlayback()
+                            try AudioSessionManager.shared.configureForPlayback()
                             refreshAudioStatus()
                         } catch {
                             testAudioStatus = "Error: \(error.localizedDescription)"
@@ -89,23 +89,26 @@ struct AudioDebugView: View {
         
         Task {
             do {
-                try await AudioSessionManager.shared.configureForPlayback()
+                try AudioSessionManager.shared.configureForPlayback()
                 
                 let item = AVPlayerItem(url: testAudioUrl)
-                let player = AVPlayer(playerItem: item)
-                self.player = player
+                let newPlayer = AVPlayer(playerItem: item)
+                self.player = newPlayer
                 
                 // Add observer for playback status
-                let observer = NotificationCenter.default.addObserver(
+                var observer: NSObjectProtocol?
+                observer = NotificationCenter.default.addObserver(
                     forName: .AVPlayerItemDidPlayToEndTime,
                     object: item,
                     queue: .main
                 ) { _ in
                     testAudioStatus = "Test audio completed successfully!"
-                    NotificationCenter.default.removeObserver(observer)
+                    if let obs = observer {
+                        NotificationCenter.default.removeObserver(obs)
+                    }
                 }
                 
-                player.play()
+                newPlayer.play()
                 testAudioStatus = "Test audio playing..."
             } catch {
                 testAudioStatus = "Failed to play test audio: \(error.localizedDescription)"
@@ -139,7 +142,7 @@ struct AudioDebugView: View {
         var logs = "--- Debug Logs ---\n"
         logs += "Audio Session Category: \(session.category.rawValue)\n"
         logs += "Audio Session Mode: \(session.mode.rawValue)\n"
-        logs += "Audio Session Active: \(try? session.isOtherAudioPlaying)\n"
+        logs += "Audio Session Active: \(String(describing: session.isOtherAudioPlaying))\n"
         logs += "Base URL: \(AppConfig.baseURL.absoluteString)\n"
         return logs
     }
