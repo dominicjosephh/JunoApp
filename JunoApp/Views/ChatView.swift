@@ -42,6 +42,7 @@ struct ChatView: View {
                     VStack(spacing: 10) {
                         ForEach(viewModel.messages) { msg in
                             MessageBubble(message: msg)
+                                .environmentObject(viewModel)
                                 .id(msg.id)
                         }
                     }

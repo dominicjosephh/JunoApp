@@ -31,6 +31,14 @@ struct SettingsView: View {
                         }
                     }
                 }
+                Section(header: Text("Diagnostics")) {
+                    NavigationLink(destination: ConnectionTestView()) {
+                        HStack {
+                            Image(systemName: "network")
+                            Text("Connection Test")
+                        }
+                    }
+                }
                 Section(header: Text("App Info")) {
                     Text("Version: \(AppConfig.clientVersion)")
                 }
