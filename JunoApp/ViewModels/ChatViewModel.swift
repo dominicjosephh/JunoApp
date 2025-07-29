@@ -23,7 +23,7 @@ final class ConversationViewModel: ObservableObject {
     private var statusObserver: NSKeyValueObservation?
     private var timeControlStatusObserver: NSKeyValueObservation?
     private var endTimeObserver: Any?
-    
+
     // Debug properties
     private var audioUrl: URL?
     private var lastResponse: String?
@@ -49,7 +49,7 @@ final class ConversationViewModel: ObservableObject {
                 uiStateText = "Tap to talk"
                 return
             }
-            
+
             print("📊 Audio data size: \(data.count) bytes")
 
             let voiceResp = try await JunoAPIClient.shared.processVoice(
@@ -58,7 +58,7 @@ final class ConversationViewModel: ObservableObject {
                 mimeType: "audio/m4a",
                 voiceMode: persona
             )
-            
+
             print("📥 Voice response received: \(voiceResp.reply ?? "nil")")
 
             var turn = ConversationTurn()
@@ -86,13 +86,13 @@ final class ConversationViewModel: ObservableObject {
             // TTS
             if let reply = voiceResp.reply {
                 print("🎯 Getting TTS for: \(String(reply.prefix(20)))...")
-                
+
                 let ttsResp = try await JunoAPIClient.shared.tts(text: reply)
                 print("🔊 TTS response received: \(ttsResp)")
-                
+
                 if let urlStr = ttsResp.audio_url {
                     print("🔗 Raw audio URL: \(urlStr)")
-                    
+
                     let url: URL
                     if urlStr.hasPrefix("http") {
                         guard let absoluteURL = URL(string: urlStr) else {
@@ -103,10 +103,10 @@ final class ConversationViewModel: ObservableObject {
                     } else {
                         url = AppConfig.baseURL.appendingPathComponent(urlStr)
                     }
-                    
+
                     print("🎵 Final audio URL: \(url.absoluteString)")
-                    self.audioUrl = url
-                    
+                    audioUrl = url
+
                     // Test if the URL is accessible
                     let request = URLRequest(url: url)
                     let (_, response) = try await URLSession.shared.data(for: request)
@@ -116,10 +116,10 @@ final class ConversationViewModel: ObservableObject {
                             print("⚠️ Audio URL returned non-200 status: \(httpResponse.statusCode)")
                         }
                     }
-                    
+
                     // Configure audio session before playing
                     try await AudioSessionManager.shared.configureForPlayback()
-                    
+
                     await MainActor.run {
                         self.playAudio(url)
                     }
@@ -139,10 +139,10 @@ final class ConversationViewModel: ObservableObject {
     @MainActor
     private func playAudio(_ url: URL) {
         print("▶️ Starting audio playback for URL: \(url.absoluteString)")
-        
+
         // Clean up previous observers
         cleanupObservers()
-        
+
         let item = AVPlayerItem(url: url)
         print("📝 Created AVPlayerItem for URL: \(url.lastPathComponent)")
 
@@ -153,11 +153,11 @@ final class ConversationViewModel: ObservableObject {
             player?.replaceCurrentItem(with: item)
             print("♻️ Replaced AVPlayer item")
         }
-        
+
         // Debug check item properties
         print("🔍 Player item duration: \(item.duration.seconds)")
         print("🔍 Player item status: \(item.status.rawValue)")
-        
+
         // Set up observers with modern KVO API
         statusObserver = item.observe(\.status, options: [.new]) { item, _ in
             Task { @MainActor in
@@ -176,7 +176,7 @@ final class ConversationViewModel: ObservableObject {
                 }
             }
         }
-        
+
         timeControlStatusObserver = player?.observe(\.timeControlStatus, options: [.new]) { [weak self] player, _ in
             Task { @MainActor in
                 print("🎮 Player timeControlStatus changed to: \(player.timeControlStatus.rawValue)")
@@ -194,7 +194,7 @@ final class ConversationViewModel: ObservableObject {
                 }
             }
         }
-        
+
         // Add notification for when playback ends - must be on main actor
         endTimeObserver = NotificationCenter.default.addObserver(
             forName: .AVPlayerItemDidPlayToEndTime,
@@ -211,13 +211,13 @@ final class ConversationViewModel: ObservableObject {
         print("▶️ Playing audio...")
         player?.play()
     }
-    
+
     @MainActor
     private func cleanupObservers() {
         print("🧹 Cleaning up player observers")
         statusObserver = nil
         timeControlStatusObserver = nil
-        
+
         if let observer = endTimeObserver {
             NotificationCenter.default.removeObserver(observer)
             endTimeObserver = nil
@@ -229,11 +229,11 @@ final class ConversationViewModel: ObservableObject {
         lastErrorMessage = msg
         showingError = true
     }
-    
+
     deinit {
         cleanupObservers()
     }
-    
+
     // Debug methods
     func debugInfo() -> String {
         var info = "--- Debug Info ---\n"
