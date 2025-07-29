@@ -29,24 +29,20 @@ struct AudioDebugView: View {
                 }
                 
                 Button("Configure for Voice") {
-                    Task {
-                        do {
-                            try await AudioSessionManager.shared.configureForVoice()
-                            refreshAudioStatus()
-                        } catch {
-                            testAudioStatus = "Error: \(error.localizedDescription)"
-                        }
+                    do {
+                        try AudioSessionManager.shared.configureForVoice()
+                        refreshAudioStatus()
+                    } catch {
+                        testAudioStatus = "Error: \(error.localizedDescription)"
                     }
                 }
                 
                 Button("Configure for Playback") {
-                    Task {
-                        do {
-                            try AudioSessionManager.shared.configureForPlayback()
-                            refreshAudioStatus()
-                        } catch {
-                            testAudioStatus = "Error: \(error.localizedDescription)"
-                        }
+                    do {
+                        try AudioSessionManager.shared.configureForPlayback()
+                        refreshAudioStatus()
+                    } catch {
+                        testAudioStatus = "Error: \(error.localizedDescription)"
                     }
                 }
             }

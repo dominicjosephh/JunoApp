@@ -30,11 +30,8 @@ final class ChatViewModel: ObservableObject {
     // MARK: - Audio Session
 
     private func configureAudioSession() {
-        let session = AVAudioSession.sharedInstance()
         do {
-            // Use compatible options for .playback category
-            try session.setCategory(.playback, mode: .spokenAudio, options: [.duckOthers])
-            try session.setActive(true)
+            try AudioSessionManager.shared.configureForPlayback()
             #if DEBUG
                 AudioDiagnostics.logSessionInfo(tag: "AFTER configureAudioSession()")
             #endif
@@ -140,6 +137,16 @@ final class ChatViewModel: ObservableObject {
     // MARK: - Playback
 
     private func play(url: URL, messageID: UUID) {
+        // Configure audio session for playback
+        do {
+            try AudioSessionManager.shared.configureForPlayback()
+        } catch {
+            #if DEBUG
+                debugPrint("❌ Audio session configuration failed: \(error)")
+            #endif
+            return
+        }
+        
         pause() // stop any active playback
 
         let item = AVPlayerItem(url: url)
@@ -152,10 +159,12 @@ final class ChatViewModel: ObservableObject {
 
         // Observe timeControlStatus to catch instant failures
         timeControlObserver = player?.observe(\.timeControlStatus, options: [.new]) { [weak self] player, _ in
-            guard let self = self else { return }
-            #if DEBUG
-                debugPrint("🎧 AVPlayer timeControlStatus: \(player.timeControlStatus.rawValue)")
-            #endif
+            Task { @MainActor in
+                guard let self = self else { return }
+                #if DEBUG
+                    debugPrint("🎧 AVPlayer timeControlStatus: \(player.timeControlStatus.rawValue)")
+                #endif
+            }
         }
 
         // Observe completion

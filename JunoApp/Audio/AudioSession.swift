@@ -4,7 +4,7 @@ final class AudioSessionManager {
     static let shared = AudioSessionManager()
     private init() {}
 
-    func configureForVoice() async throws {
+    func configureForVoice() throws {
         let session = AVAudioSession.sharedInstance()
         
         print("🎤 Configuring audio session for voice...")
@@ -36,7 +36,7 @@ final class AudioSessionManager {
         }
     }
 
-    func configureForPlayback() async throws {
+    func configureForPlayback() throws {
         let session = AVAudioSession.sharedInstance()
         
         print("🔊 Configuring audio session for playback...")

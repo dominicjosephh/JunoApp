@@ -34,7 +34,7 @@ final class ConversationViewModel: ObservableObject {
     
     func startRecording() async {
         do {
-            try await AudioSessionManager.shared.configureForVoice()
+            try AudioSessionManager.shared.configureForVoice()
             try recorder.start()
             isRecording = true
             uiStateText = "Listening… tap to stop"
@@ -114,13 +114,12 @@ final class ConversationViewModel: ObservableObject {
     func play(_ url: URL) {
         print("▶️ Attempting to play audio from URL: \(url)")
         
-        // Configure audio session
+        // Configure audio session for playback
         do {
-            let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playback, mode: .spokenAudio, options: [.duckOthers])
-            try session.setActive(true)
+            try AudioSessionManager.shared.configureForPlayback()
         } catch {
             print("❌ Audio session configuration failed: \(error)")
+            showError("Audio session error: \(error.localizedDescription)")
             return
         }
         
@@ -141,34 +140,39 @@ final class ConversationViewModel: ObservableObject {
         
         // Add observers for debugging
         statusObserver = newPlayer.observe(\.status, options: [.new]) { [weak self] player, _ in
-            switch player.status {
-            case .readyToPlay:
-                print("🎧 AVPlayer is ready to play")
-            case .failed:
-                if let error = player.error {
-                    print("❌ AVPlayer failed with error: \(error)")
-                    self?.showError("Playback error: \(error.localizedDescription)")
+            Task { @MainActor in
+                guard let self = self else { return }
+                switch player.status {
+                case .readyToPlay:
+                    print("🎧 AVPlayer is ready to play")
+                case .failed:
+                    if let error = player.error {
+                        print("❌ AVPlayer failed with error: \(error)")
+                        self.showError("Playback error: \(error.localizedDescription)")
+                    }
+                case .unknown:
+                    print("⚠️ AVPlayer status is unknown")
+                @unknown default:
+                    break
                 }
-            case .unknown:
-                print("⚠️ AVPlayer status is unknown")
-            @unknown default:
-                break
             }
         }
         
         timeControlStatusObserver = newPlayer.observe(\.timeControlStatus, options: [.new]) { player, _ in
-            print("🎧 AVPlayer timeControlStatus: \(player.timeControlStatus.rawValue)")
-            switch player.timeControlStatus {
-            case .playing:
-                print("🎶 AVPlayer is playing at rate: \(player.rate)")
-            case .paused:
-                print("⏸️ AVPlayer is paused")
-            case .waitingToPlayAtSpecifiedRate:
-                if let reason = player.reasonForWaitingToPlay {
-                    print("⏳ AVPlayer is waiting to play because: \(reason)")
+            Task { @MainActor in
+                print("🎧 AVPlayer timeControlStatus: \(player.timeControlStatus.rawValue)")
+                switch player.timeControlStatus {
+                case .playing:
+                    print("🎶 AVPlayer is playing at rate: \(player.rate)")
+                case .paused:
+                    print("⏸️ AVPlayer is paused")
+                case .waitingToPlayAtSpecifiedRate:
+                    if let reason = player.reasonForWaitingToPlay {
+                        print("⏳ AVPlayer is waiting to play because: \(reason)")
+                    }
+                @unknown default:
+                    break
                 }
-            @unknown default:
-                break
             }
         }
         
@@ -188,8 +192,11 @@ final class ConversationViewModel: ObservableObject {
             forTimes: [NSValue(time: playerItem.duration)],
             queue: .main
         ) { [weak self] in
-            print("✅ Audio playback completed")
-            self?.player = nil
+            Task { @MainActor in
+                guard let self = self else { return }
+                print("✅ Audio playback completed")
+                self.player = nil
+            }
         }
         
         // Start playback
@@ -201,5 +208,15 @@ final class ConversationViewModel: ObservableObject {
         lastErrorMessage = message
         showingError = true
         print("❌ Error: \(message)")
+    }
+    
+    deinit {
+        // Clean up observers
+        statusObserver?.invalidate()
+        timeControlStatusObserver?.invalidate()
+        if let observer = endTimeObserver, let player = player {
+            player.removeTimeObserver(observer)
+        }
+        NotificationCenter.default.removeObserver(self)
     }
 }
