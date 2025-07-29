@@ -47,13 +47,19 @@ struct AudioDebugView: View {
                 }
             }
             
-            Section(header: Text("App Config")) {
+            Section(header: Text("App Config & Network")) {
                 Text("Base URL: \(AppConfig.baseURL.absoluteString)")
                 Text("Client Version: \(AppConfig.clientVersion)")
                 
                 Button("Test API Connection") {
                     Task {
-                        testAPIConnection()
+                        await testAPIConnection()
+                    }
+                }
+                
+                Button("Test TTS URL") {
+                    Task {
+                        await testTTSURL()
                     }
                 }
             }
@@ -112,22 +118,57 @@ struct AudioDebugView: View {
         }
     }
     
-    private func testAPIConnection() {
-        Task {
-            do {
-                testAudioStatus = "Testing API connection..."
-                let url = AppConfig.baseURL.appendingPathComponent("/api/ping")
-                let (data, response) = try await URLSession.shared.data(from: url)
+    private func testAPIConnection() async {
+        do {
+            testAudioStatus = "Testing API connection..."
+            let url = AppConfig.baseURL.appendingPathComponent("/api/ping")
+            let (data, response) = try await URLSession.shared.data(from: url)
+            
+            if let httpResponse = response as? HTTPURLResponse {
+                testAudioStatus = "API ping status: \(httpResponse.statusCode)"
+                if let string = String(data: data, encoding: .utf8) {
+                    testAudioStatus += "\nResponse: \(string)"
+                }
+            }
+        } catch {
+            testAudioStatus = "API connection failed: \(error.localizedDescription)"
+        }
+    }
+    
+    private func testTTSURL() async {
+        do {
+            testAudioStatus = "Testing TTS endpoint..."
+            let ttsResponse = try await JunoAPIClient.shared.tts(text: "Hello, this is a test.")
+            
+            if let urlStr = ttsResponse.audio_url {
+                let url: URL
+                if urlStr.hasPrefix("http") {
+                    guard let absoluteURL = URL(string: urlStr) else {
+                        testAudioStatus = "❌ Invalid TTS URL: \(urlStr)"
+                        return
+                    }
+                    url = absoluteURL
+                } else {
+                    url = AppConfig.baseURL.appendingPathComponent(urlStr)
+                }
                 
+                testAudioStatus = "✅ TTS URL: \(url.absoluteString)\nTesting playback..."
+                
+                // Test if URL is accessible
+                let (_, response) = try await URLSession.shared.data(from: url)
                 if let httpResponse = response as? HTTPURLResponse {
-                    testAudioStatus = "API ping status: \(httpResponse.statusCode)"
-                    if let string = String(data: data, encoding: .utf8) {
-                        testAudioStatus += "\nResponse: \(string)"
+                    testAudioStatus += "\nHTTP Status: \(httpResponse.statusCode)"
+                    if httpResponse.statusCode == 200 {
+                        testAudioStatus += "\n✅ TTS audio file accessible"
+                    } else {
+                        testAudioStatus += "\n❌ TTS audio file not accessible"
                     }
                 }
-            } catch {
-                testAudioStatus = "API connection failed: \(error.localizedDescription)"
+            } else {
+                testAudioStatus = "❌ No audio URL in TTS response"
             }
+        } catch {
+            testAudioStatus = "TTS test failed: \(error.localizedDescription)"
         }
     }
     

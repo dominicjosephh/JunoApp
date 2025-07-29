@@ -84,23 +84,39 @@ final class ConversationViewModel: ObservableObject {
             
             // TTS
             if let reply = voiceResp.reply {
-                let ttsResp = try await JunoAPIClient.shared.tts(text: reply)
-                if let urlStr = ttsResp.audio_url {
-                    let url: URL
-                    if urlStr.hasPrefix("http") {
-                        guard let absoluteURL = URL(string: urlStr) else {
-                            throw APIClientError.badURL
+                do {
+                    let ttsResp = try await JunoAPIClient.shared.tts(text: reply)
+                    if let urlStr = ttsResp.audio_url {
+                        let url: URL
+                        if urlStr.hasPrefix("http") {
+                            guard let absoluteURL = URL(string: urlStr) else {
+                                showError("Invalid TTS URL: \(urlStr)")
+                                uiStateText = "Tap to talk"
+                                return
+                            }
+                            url = absoluteURL
+                        } else {
+                            url = AppConfig.baseURL.appendingPathComponent(urlStr)
                         }
-                        url = absoluteURL
+                        
+                        // Debug
+                        self.audioUrl = url
+                        print("🔗 TTS URL: \(url)")
+                        
+                        #if DEBUG
+                            AudioDiagnostics.logURLRequest(url: url, tag: "Voice Response TTS")
+                        #endif
+                        
+                        play(url)
                     } else {
-                        url = AppConfig.baseURL.appendingPathComponent(urlStr)
+                        print("⚠️ No audio URL in TTS response")
                     }
-                    
-                    // Debug
-                    self.audioUrl = url
-                    print("🔗 TTS URL: \(url)")
-                    
-                    play(url)
+                } catch {
+                    print("❌ TTS request failed: \(error)")
+                    #if DEBUG
+                        AudioDiagnostics.logAudioPlaybackError(error: error, context: "ConversationViewModel TTS")
+                    #endif
+                    showError("TTS failed: \(error.localizedDescription)")
                 }
             }
             
@@ -114,11 +130,18 @@ final class ConversationViewModel: ObservableObject {
     func play(_ url: URL) {
         print("▶️ Attempting to play audio from URL: \(url)")
         
+        #if DEBUG
+            AudioDiagnostics.logURLRequest(url: url, tag: "TTS Playback Request")
+        #endif
+        
         // Configure audio session for playback
         do {
             try AudioSessionManager.shared.configureForPlayback()
         } catch {
             print("❌ Audio session configuration failed: \(error)")
+            #if DEBUG
+                AudioDiagnostics.logAudioPlaybackError(error: error, context: "ConversationViewModel session config")
+            #endif
             showError("Audio session error: \(error.localizedDescription)")
             return
         }
@@ -202,6 +225,10 @@ final class ConversationViewModel: ObservableObject {
         // Start playback
         newPlayer.play()
         print("▶️ Started playing audio")
+        
+        #if DEBUG
+            AudioDiagnostics.logPlayerStatus(player: newPlayer, tag: "After play() call")
+        #endif
     }
     
     private func showError(_ message: String) {

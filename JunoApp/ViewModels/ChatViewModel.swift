@@ -112,7 +112,11 @@ final class ChatViewModel: ObservableObject {
                 let url: URL
                 if urlStr.hasPrefix("http") {
                     guard let absoluteURL = URL(string: urlStr) else {
-                        throw APIClientError.badURL
+                        #if DEBUG
+                            debugPrint("❌ Invalid TTS URL: \(urlStr)")
+                        #endif
+                        messages.append(ChatMessage(text: "Invalid TTS URL received", isUser: false))
+                        return
                     }
                     url = absoluteURL
                 } else {
@@ -121,6 +125,7 @@ final class ChatViewModel: ObservableObject {
 
                 #if DEBUG
                     debugPrint("🔗 TTS URL: \(url.absoluteString)")
+                    AudioDiagnostics.logURLRequest(url: url, tag: "Chat TTS")
                 #endif
 
                 if let idx = messages.firstIndex(where: { $0.id == junoMsg.id }) {
@@ -128,6 +133,10 @@ final class ChatViewModel: ObservableObject {
                     messages[idx] = junoMsg
                 }
                 play(url: url, messageID: junoMsg.id)
+            } else {
+                #if DEBUG
+                    debugPrint("⚠️ No audio URL in TTS response")
+                #endif
             }
         } catch {
             messages.append(ChatMessage(text: "Error: \(error.localizedDescription)", isUser: false))
@@ -137,12 +146,17 @@ final class ChatViewModel: ObservableObject {
     // MARK: - Playback
 
     private func play(url: URL, messageID: UUID) {
+        #if DEBUG
+            AudioDiagnostics.logURLRequest(url: url, tag: "ChatViewModel Playback")
+        #endif
+        
         // Configure audio session for playback
         do {
             try AudioSessionManager.shared.configureForPlayback()
         } catch {
             #if DEBUG
                 debugPrint("❌ Audio session configuration failed: \(error)")
+                AudioDiagnostics.logAudioPlaybackError(error: error, context: "ChatViewModel session config")
             #endif
             return
         }
@@ -184,9 +198,12 @@ final class ChatViewModel: ObservableObject {
         isGlobalPlaying = true
 
         #if DEBUG
+            AudioDiagnostics.logPlayerStatus(player: player, tag: "ChatViewModel after play()")
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
                 AudioDiagnostics.logSessionInfo(tag: "AFTER player.play()")
+                AudioDiagnostics.logPlayerStatus(player: self.player, tag: "ChatViewModel delayed check")
                 if let err = item.error {
+                    AudioDiagnostics.logAudioPlaybackError(error: err, context: "ChatViewModel PlayerItem")
                     debugPrint("❌ Player item error: \(err.localizedDescription)")
                 }
                 debugPrint("⏱️ Player rate: \(self.player?.rate ?? -1)")
