@@ -127,6 +127,28 @@ public struct MemorySummaryDTO: Codable {
     public let conversation_stats: ConversationStats
 }
 
+public enum ConnectionStatus {
+    case success
+    case partial
+    case failed
+}
+
+public struct EndpointTestResult {
+    public let name: String
+    public let url: String
+    public let status: ConnectionStatus
+    public let responseTime: TimeInterval
+    public let statusCode: Int?
+    public let error: String?
+}
+
+public struct ConnectionTestResult {
+    public let overallStatus: ConnectionStatus
+    public let baseURL: String
+    public let timestamp: Date
+    public let endpointResults: [EndpointTestResult]
+}
+
 // MARK: - Client
 
 public final class JunoAPIClient {
@@ -187,6 +209,103 @@ public final class JunoAPIClient {
         let (data, response) = try await session.data(for: request)
         try validate(response, data: data)
         return try decoder.decode(MemorySummaryDTO.self, from: data)
+    }
+
+    // MARK: - Connection Testing
+
+    public func testConnection() async -> ConnectionTestResult {
+        let baseURL = AppConfig.baseURL
+        var results: [EndpointTestResult] = []
+        
+        // Test base connectivity
+        let baseResult = await testEndpoint(url: baseURL, name: "Base URL")
+        results.append(baseResult)
+        
+        // Test API endpoints
+        let chatURL = baseURL.appendingPathComponent("/api/chat")
+        let chatResult = await testEndpoint(url: chatURL, name: "Chat API", method: "POST", expectError: true)
+        results.append(chatResult)
+        
+        let ttsURL = baseURL.appendingPathComponent("/api/tts")
+        let ttsResult = await testEndpoint(url: ttsURL, name: "TTS API", method: "POST", expectError: true)
+        results.append(ttsResult)
+        
+        let voiceURL = baseURL.appendingPathComponent("/api/voice")
+        let voiceResult = await testEndpoint(url: voiceURL, name: "Voice API", method: "POST", expectError: true)
+        results.append(voiceResult)
+        
+        let memoryURL = baseURL.appendingPathComponent("/api/memory/summary")
+        let memoryResult = await testEndpoint(url: memoryURL, name: "Memory API")
+        results.append(memoryResult)
+        
+        let overallStatus: ConnectionStatus = results.allSatisfy { $0.status == .success } ? .success : 
+                                            results.contains { $0.status == .success } ? .partial : .failed
+        
+        return ConnectionTestResult(
+            overallStatus: overallStatus,
+            baseURL: baseURL.absoluteString,
+            timestamp: Date(),
+            endpointResults: results
+        )
+    }
+    
+    private func testEndpoint(url: URL, name: String, method: String = "GET", expectError: Bool = false) async -> EndpointTestResult {
+        let startTime = Date()
+        
+        do {
+            var request = URLRequest(url: url)
+            request.httpMethod = method
+            request.timeoutInterval = 10 // Shorter timeout for testing
+            addHeaders(&request)
+            
+            // For POST endpoints, add minimal body to avoid 400 errors
+            if method == "POST" {
+                request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                request.httpBody = "{}".data(using: .utf8)
+            }
+            
+            let (data, response) = try await session.data(for: request)
+            let responseTime = Date().timeIntervalSince(startTime)
+            
+            guard let httpResponse = response as? HTTPURLResponse else {
+                return EndpointTestResult(
+                    name: name,
+                    url: url.absoluteString,
+                    status: .failed,
+                    responseTime: responseTime,
+                    statusCode: nil,
+                    error: "Invalid response type"
+                )
+            }
+            
+            // For endpoints where we expect errors (like empty POST requests), 
+            // treat 400-499 as success since the server is responding
+            let isSuccessful = if expectError {
+                (200...499).contains(httpResponse.statusCode)
+            } else {
+                (200...299).contains(httpResponse.statusCode)
+            }
+            
+            return EndpointTestResult(
+                name: name,
+                url: url.absoluteString,
+                status: isSuccessful ? .success : .failed,
+                responseTime: responseTime,
+                statusCode: httpResponse.statusCode,
+                error: isSuccessful ? nil : "HTTP \(httpResponse.statusCode)"
+            )
+            
+        } catch {
+            let responseTime = Date().timeIntervalSince(startTime)
+            return EndpointTestResult(
+                name: name,
+                url: url.absoluteString,
+                status: .failed,
+                responseTime: responseTime,
+                statusCode: nil,
+                error: error.localizedDescription
+            )
+        }
     }
 
     // MARK: - Helpers
