@@ -89,9 +89,20 @@ final class ConversationViewModel: ObservableObject {
             uiStateText = "Tap to talk"
         }
     }
-    
+   
     private func play(_ url: URL) {
-        player = AVPlayer(url: url)
+        #if DEBUG
+        print("🔊 AVPlayer URL:", url.absoluteString)
+        #endif
+
+        let item = AVPlayerItem(url: url)
+
+        if player == nil {
+            player = AVPlayer(playerItem: item)
+        } else {
+            player?.replaceCurrentItem(with: item)
+        }
+
         player?.play()
     }
     

@@ -1,12 +1,13 @@
 import SwiftUI
-import AVFoundation
 
 struct MessageBubble: View {
+    @EnvironmentObject var viewModel: ChatViewModel
     let message: ChatMessage
 
     var body: some View {
         HStack {
             if message.isUser { Spacer() }
+
             VStack(alignment: .leading, spacing: 4) {
                 Text(message.text)
                     .padding(10)
@@ -14,29 +15,28 @@ struct MessageBubble: View {
                                                : Color.gray.opacity(0.3))
                     .foregroundColor(message.isUser ? .white : .black)
                     .cornerRadius(12)
-                if let audioURL = message.audioURL {
-                    Button(action: { playAudio(url: audioURL) }) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "speaker.wave.2.fill")
-                            Text("Play")
+
+                if !message.isUser, let _ = message.audioURL {
+                    Button {
+                        viewModel.togglePlay(for: message)
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: viewModel.isPlaying(message: message)
+                                  ? "pause.circle.fill"
+                                  : "play.circle.fill")
+                            Text(viewModel.isPlaying(message: message) ? "Pause" : "Play")
                         }
                         .font(.caption)
-                        .padding(6)
-                        .background(Color.black.opacity(0.1))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 6)
+                        .background(Color.black.opacity(0.08))
                         .cornerRadius(8)
                     }
                 }
             }
+
             if !message.isUser { Spacer() }
         }
         .padding(.horizontal)
-    }
-
-    @State private var audioPlayer: AVPlayer?
-
-    private func playAudio(url: URL) {
-        audioPlayer?.pause()
-        audioPlayer = AVPlayer(url: url)
-        audioPlayer?.play()
     }
 }

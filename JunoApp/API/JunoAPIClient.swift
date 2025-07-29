@@ -2,7 +2,13 @@ import Foundation
 import AVFoundation
 
 public enum AppConfig {
-    public static var baseURL: URL = URL(string: "https://djpresence.com")!
+    public static var baseURL: URL = {
+        if let urlString = ProcessInfo.processInfo.environment["API_BASE_URL"],
+           let url = URL(string: urlString) {
+            return url
+        }
+        return URL(string: "https://djpresence.com")!
+    }()
     public static let clientVersion: String = "ios@1.0.0"
 }
 
