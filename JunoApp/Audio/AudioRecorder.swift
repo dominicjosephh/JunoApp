@@ -30,13 +30,13 @@ final class AudioRecorder: NSObject, AVAudioRecorderDelegate {
         let filename = "juno_voice_\(UUID().uuidString).m4a"
         let tempDir = FileManager.default.temporaryDirectory
         let url = tempDir.appendingPathComponent(filename)
-        self.fileURL = url
+        fileURL = url
 
         let settings: [String: Any] = [
             AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
-            AVSampleRateKey: 44_100,
+            AVSampleRateKey: 44100,
             AVNumberOfChannelsKey: 1,
-            AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
+            AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue,
         ]
 
         recorder = try AVAudioRecorder(url: url, settings: settings)

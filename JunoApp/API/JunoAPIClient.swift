@@ -1,5 +1,5 @@
-import Foundation
 import AVFoundation
+import Foundation
 
 public enum AppConfig {
     public static var baseURL: URL = {
@@ -9,10 +9,12 @@ public enum AppConfig {
         }
         return URL(string: "https://djpresence.com")!
     }()
+
     public static let clientVersion: String = "ios@1.0.0"
 }
 
 // MARK: - Persona
+
 public enum PersonaMode: String, Codable {
     case Base
     case Empathy
@@ -21,6 +23,7 @@ public enum PersonaMode: String, Codable {
 }
 
 // MARK: - Errors
+
 public enum APIClientError: Error, LocalizedError {
     case badURL
     case invalidHTTPStatus(Int, String?)
@@ -35,12 +38,12 @@ public enum APIClientError: Error, LocalizedError {
     public var errorDescription: String? {
         switch self {
         case .badURL: return "Bad URL"
-        case .invalidHTTPStatus(let code, let body):
+        case let .invalidHTTPStatus(code, body):
             return "HTTP \(code). Body: \(body ?? "<none>")"
-        case .decodingFailed(let err): return "Decoding failed: \(err.localizedDescription)"
-        case .encodingFailed(let err): return "Encoding failed: \(err.localizedDescription)"
-        case .transport(let err): return "Network error: \(err.localizedDescription)"
-        case .server(let msg): return "Server error: \(msg)"
+        case let .decodingFailed(err): return "Decoding failed: \(err.localizedDescription)"
+        case let .encodingFailed(err): return "Encoding failed: \(err.localizedDescription)"
+        case let .transport(err): return "Network error: \(err.localizedDescription)"
+        case let .server(msg): return "Server error: \(msg)"
         case .noData: return "No data returned"
         case .fileNotFound: return "File not found"
         case .unknown: return "Unknown error"
@@ -49,6 +52,7 @@ public enum APIClientError: Error, LocalizedError {
 }
 
 // MARK: - DTOs
+
 public struct ChatMessageDTO: Codable {
     public let role: String
     public let content: String
@@ -93,6 +97,7 @@ public struct MemorySummaryDTO: Codable {
         public let positive_count: Int
         public let negative_count: Int
     }
+
     public struct PersonalFact: Codable, Identifiable {
         public let id: Int
         public let category: String
@@ -100,6 +105,7 @@ public struct MemorySummaryDTO: Codable {
         public let value: String
         public let confidence: Double
     }
+
     public struct Topic: Codable, Identifiable {
         public let id: Int
         public let topic: String
@@ -107,12 +113,14 @@ public struct MemorySummaryDTO: Codable {
         public let associated_emotion: String?
         public let importance_score: Double
     }
+
     public struct Relationship: Codable, Identifiable {
         public let id: Int
         public let name: String
         public let relationship_type: String
         public let last_mentioned: String?
     }
+
     public let personal_facts: [PersonalFact]
     public let favorite_topics: [Topic]
     public let relationships: [Relationship]
@@ -120,6 +128,7 @@ public struct MemorySummaryDTO: Codable {
 }
 
 // MARK: - Client
+
 public final class JunoAPIClient {
     public static let shared = JunoAPIClient()
     private let session: URLSession
@@ -130,13 +139,13 @@ public final class JunoAPIClient {
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 60
         config.timeoutIntervalForResource = 120
-        self.session = URLSession(configuration: config)
+        session = URLSession(configuration: config)
 
-        self.decoder = JSONDecoder()
-        self.decoder.keyDecodingStrategy = .convertFromSnakeCase
+        decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
 
-        self.encoder = JSONEncoder()
-        self.encoder.keyEncodingStrategy = .convertToSnakeCase
+        encoder = JSONEncoder()
+        encoder.keyEncodingStrategy = .convertToSnakeCase
     }
 
     public func chat(messages: [ChatMessageDTO], personality: PersonaMode = .Base) async throws -> ChatResponseDTO {
@@ -181,6 +190,7 @@ public final class JunoAPIClient {
     }
 
     // MARK: - Helpers
+
     private func postJSON<T: Codable, R: Codable>(_ url: URL, _ body: T, _ type: R.Type) async throws -> R {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -199,7 +209,7 @@ public final class JunoAPIClient {
 
     private func validate(_ response: URLResponse, data: Data?) throws {
         guard let http = response as? HTTPURLResponse else { return }
-        guard (200..<300).contains(http.statusCode) else {
+        guard (200 ..< 300).contains(http.statusCode) else {
             throw APIClientError.invalidHTTPStatus(http.statusCode, String(data: data ?? Data(), encoding: .utf8))
         }
     }

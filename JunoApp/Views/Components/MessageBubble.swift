@@ -12,7 +12,7 @@ struct MessageBubble: View {
                 Text(message.text)
                     .padding(10)
                     .background(message.isUser ? Color.blue.opacity(0.8)
-                                               : Color.gray.opacity(0.3))
+                        : Color.gray.opacity(0.3))
                     .foregroundColor(message.isUser ? .white : .black)
                     .cornerRadius(12)
 
@@ -22,8 +22,8 @@ struct MessageBubble: View {
                     } label: {
                         HStack(spacing: 6) {
                             Image(systemName: viewModel.isPlaying(message: message)
-                                  ? "pause.circle.fill"
-                                  : "play.circle.fill")
+                                ? "pause.circle.fill"
+                                : "play.circle.fill")
                             Text(viewModel.isPlaying(message: message) ? "Pause" : "Play")
                         }
                         .font(.caption)

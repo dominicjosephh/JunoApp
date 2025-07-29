@@ -3,7 +3,7 @@ import Foundation
 enum Log {
     static func d(_ msg: String) {
         #if DEBUG
-        print("🧭 [DEBUG] \(msg)")
+            print("🧭 [DEBUG] \(msg)")
         #endif
     }
 

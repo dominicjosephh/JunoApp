@@ -1,10 +1,10 @@
-import SwiftUI
 import AVFoundation
+import SwiftUI
 
 struct ConversationView: View {
     @EnvironmentObject private var appState: AppState
     @StateObject private var viewModel = ConversationViewModel()
-    
+
     var body: some View {
         VStack {
             header
@@ -24,7 +24,7 @@ struct ConversationView: View {
                   dismissButton: .default(Text("OK")))
         }
     }
-    
+
     private var header: some View {
         HStack {
             Text("Conversation")
@@ -46,7 +46,7 @@ struct ConversationView: View {
         }
         .padding(.top)
     }
-    
+
     private var transcriptList: some View {
         ScrollViewReader { proxy in
             ScrollView {
@@ -73,7 +73,7 @@ struct ConversationView: View {
             }
         }
     }
-    
+
     private func bubble(text: String, isUser: Bool,
                         emotion: String? = nil,
                         mode: String? = nil) -> some View {
@@ -83,10 +83,10 @@ struct ConversationView: View {
                 Text(text)
                     .padding(10)
                     .background(isUser ? Color.blue.opacity(0.8)
-                                        : Color.gray.opacity(0.3))
+                        : Color.gray.opacity(0.3))
                     .foregroundColor(isUser ? .white : .black)
                     .cornerRadius(12)
-                
+
                 if !isUser {
                     HStack(spacing: 6) {
                         if let emotion = emotion {
@@ -102,7 +102,7 @@ struct ConversationView: View {
         }
         .padding(.horizontal)
     }
-    
+
     private func badge(_ txt: String) -> some View {
         Text(txt)
             .font(.caption2)
@@ -111,7 +111,7 @@ struct ConversationView: View {
             .background(Color.black.opacity(0.08))
             .cornerRadius(6)
     }
-    
+
     private var recordControl: some View {
         VStack(spacing: 12) {
             Text(viewModel.uiStateText)

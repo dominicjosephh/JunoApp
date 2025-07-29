@@ -4,7 +4,7 @@ struct SettingsView: View {
     @EnvironmentObject private var appState: AppState
     @AppStorage("autoPlayVoice") private var autoPlayVoice: Bool = true
     @AppStorage("defaultPersona") private var defaultPersonaRaw: String = PersonaMode.Base.rawValue
-    
+
     var body: some View {
         NavigationView {
             Form {
@@ -38,7 +38,7 @@ struct SettingsView: View {
             .navigationTitle("Settings")
         }
     }
-    
+
     private func connectSpotify() {
         SpotifyManager.shared.connect()
     }

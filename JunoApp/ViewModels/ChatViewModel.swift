@@ -22,11 +22,13 @@ final class ChatViewModel: ObservableObject {
     var isSpeaking: Bool { player?.timeControlStatus == .playing }
 
     // MARK: - Init
+
     init() {
         configureAudioSession()
     }
 
     // MARK: - Audio Session
+
     private func configureAudioSession() {
         let session = AVAudioSession.sharedInstance()
         do {
@@ -34,16 +36,17 @@ final class ChatViewModel: ObservableObject {
             try session.setCategory(.playback, mode: .spokenAudio, options: [.duckOthers])
             try session.setActive(true)
             #if DEBUG
-            AudioDiagnostics.logSessionInfo(tag: "AFTER configureAudioSession()")
+                AudioDiagnostics.logSessionInfo(tag: "AFTER configureAudioSession()")
             #endif
         } catch {
             #if DEBUG
-            debugPrint("⚠️ Audio session configuration failed: \(error)")
+                debugPrint("⚠️ Audio session configuration failed: \(error)")
             #endif
         }
     }
 
     // MARK: - Public API
+
     func sendUserMessage(_ text: String) {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
@@ -88,6 +91,7 @@ final class ChatViewModel: ObservableObject {
     }
 
     // MARK: - Networking / TTS
+
     private func fetchJunoReply(for text: String) async {
         isLoading = true
         defer { isLoading = false }
@@ -108,7 +112,7 @@ final class ChatViewModel: ObservableObject {
             let ttsResp = try await JunoAPIClient.shared.tts(text: replyText)
             if let urlStr = ttsResp.audio_url, let url = URL(string: urlStr) {
                 #if DEBUG
-                debugPrint("🔗 TTS URL: \(url.absoluteString)")
+                    debugPrint("🔗 TTS URL: \(url.absoluteString)")
                 #endif
 
                 if let idx = messages.firstIndex(where: { $0.id == junoMsg.id }) {
@@ -123,6 +127,7 @@ final class ChatViewModel: ObservableObject {
     }
 
     // MARK: - Playback
+
     private func play(url: URL, messageID: UUID) {
         pause() // stop any active playback
 
@@ -131,14 +136,14 @@ final class ChatViewModel: ObservableObject {
         currentlyPlayingMessageID = messageID
 
         #if DEBUG
-        AudioDiagnostics.logSessionInfo(tag: "BEFORE player.play()")
+            AudioDiagnostics.logSessionInfo(tag: "BEFORE player.play()")
         #endif
 
         // Observe timeControlStatus to catch instant failures
         timeControlObserver = player?.observe(\.timeControlStatus, options: [.new, .old]) { [weak self] player, _ in
             guard let self else { return }
             #if DEBUG
-            debugPrint("🎧 AVPlayer timeControlStatus: \(player.timeControlStatus.rawValue)")
+                debugPrint("🎧 AVPlayer timeControlStatus: \(player.timeControlStatus.rawValue)")
             #endif
         }
 
@@ -157,13 +162,13 @@ final class ChatViewModel: ObservableObject {
         isGlobalPlaying = true
 
         #if DEBUG
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-            AudioDiagnostics.logSessionInfo(tag: "AFTER player.play()")
-            if let err = item.error {
-                debugPrint("❌ Player item error: \(err.localizedDescription)")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                AudioDiagnostics.logSessionInfo(tag: "AFTER player.play()")
+                if let err = item.error {
+                    debugPrint("❌ Player item error: \(err.localizedDescription)")
+                }
+                debugPrint("⏱️ Player rate: \(self.player?.rate ?? -1)")
             }
-            debugPrint("⏱️ Player rate: \(self.player?.rate ?? -1)")
-        }
         #endif
     }
 
@@ -183,6 +188,7 @@ final class ChatViewModel: ObservableObject {
 }
 
 // MARK: - ChatMessage model (keep near ChatViewModel for clarity)
+
 struct ChatMessage: Identifiable, Equatable {
     let id = UUID()
     let text: String

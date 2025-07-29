@@ -2,7 +2,7 @@ import SwiftUI
 
 struct MemoryView: View {
     @StateObject private var viewModel = MemoryViewModel()
-    
+
     var body: some View {
         NavigationView {
             Group {

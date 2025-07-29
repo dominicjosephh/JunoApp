@@ -7,8 +7,8 @@ struct ChatView: View {
     @available(iOS 15.6, *)
     var body: some View {
         VStack(spacing: 0) {
-
             // MARK: - Header
+
             HStack {
                 Text("Juno Chat")
                     .font(.title2).bold()
@@ -36,6 +36,7 @@ struct ChatView: View {
             Divider()
 
             // MARK: - Messages
+
             ScrollViewReader { proxy in
                 ScrollView {
                     VStack(spacing: 10) {
@@ -57,12 +58,13 @@ struct ChatView: View {
             Divider()
 
             // MARK: - Input
+
             Divider()
             HStack {
                 if #available(iOS 16.0, *) {
                     TextField("Type a message...", text: $messageText, axis: .vertical)
                         .textFieldStyle(.roundedBorder)
-                        .lineLimit(1...4)
+                        .lineLimit(1 ... 4)
                 } else {
                     TextField("Type a message...", text: $messageText)
                         .textFieldStyle(.roundedBorder)
@@ -81,7 +83,7 @@ struct ChatView: View {
             .padding(.bottom, 8)
         }
         .background(Color.gray.opacity(0.05))
-        
+
         .overlay {
             if viewModel.isLoading {
                 ProgressView("Juno is thinking…")
