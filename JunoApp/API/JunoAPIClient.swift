@@ -1,243 +1,160 @@
-import AVFoundation
 import Foundation
 
-public enum AppConfig {
-    public static var baseURL: URL = {
-        if let urlString = ProcessInfo.processInfo.environment["API_BASE_URL"],
-           let url = URL(string: urlString) {
-            return url
-        }
-        return URL(string: "https://djpresence.com")!
-    }()
+// MARK: - Error type
 
-    public static let clientVersion: String = "ios@1.0.0"
-}
-
-// MARK: - Persona
-
-public enum PersonaMode: String, Codable {
-    case Base
-    case Empathy
-    case Hype
-    case Sassy
-}
-
-// MARK: - Errors
-
-public enum APIClientError: Error, LocalizedError {
-    case badURL
-    case invalidHTTPStatus(Int, String?)
-    case decodingFailed(Error)
-    case encodingFailed(Error)
-    case transport(Error)
-    case server(String)
+/// Errors that can occur while making API requests.
+enum APIClientError: LocalizedError {
+    case invalidURL
     case noData
-    case fileNotFound
-    case unknown
+    case badURL
 
-    public var errorDescription: String? {
+    var errorDescription: String? {
         switch self {
-        case .badURL: return "Bad URL"
-        case let .invalidHTTPStatus(code, body):
-            return "HTTP \(code). Body: \(body ?? "<none>")"
-        case let .decodingFailed(err): return "Decoding failed: \(err.localizedDescription)"
-        case let .encodingFailed(err): return "Encoding failed: \(err.localizedDescription)"
-        case let .transport(err): return "Network error: \(err.localizedDescription)"
-        case let .server(msg): return "Server error: \(msg)"
-        case .noData: return "No data returned"
-        case .fileNotFound: return "File not found"
-        case .unknown: return "Unknown error"
+        case .invalidURL:
+            return "Invalid URL"
+        case .noData:
+            return "No data received"
+        case .badURL:
+            return "Bad URL format"
         }
     }
 }
 
-// MARK: - DTOs
+// MARK: - API client
 
-public struct ChatMessageDTO: Codable {
-    public let role: String
-    public let content: String
-}
-
-public struct ChatRequestDTO: Codable {
-    public let messages: [ChatMessageDTO]
-    public let personality: String
-}
-
-public struct ChatResponseDTO: Codable {
-    public let reply: String?
-    public let error: String?
-}
-
-public struct TTSRequestDTO: Codable {
-    public let text: String
-}
-
-public struct TTSResponseDTO: Codable {
-    public let audio_url: String?
-    public let error: String?
-}
-
-public struct VoiceEmotionDTO: Codable {
-    public let emotion: String?
-    public let confidence: Double?
-}
-
-public struct VoiceResponseDTO: Codable {
-    public let reply: String?
-    public let error: String?
-    public let voice_mode: String?
-    public let adapted_voice_mode: String?
-    public let emotion_data: VoiceEmotionDTO?
-}
-
-public struct MemorySummaryDTO: Codable {
-    public struct ConversationStats: Codable {
-        public let total_conversations: Int
-        public let avg_importance: Double
-        public let positive_count: Int
-        public let negative_count: Int
-    }
-
-    public struct PersonalFact: Codable, Identifiable {
-        public let id: Int
-        public let category: String
-        public let key: String
-        public let value: String
-        public let confidence: Double
-    }
-
-    public struct Topic: Codable, Identifiable {
-        public let id: Int
-        public let topic: String
-        public let mentions: Int
-        public let associated_emotion: String?
-        public let importance_score: Double
-    }
-
-    public struct Relationship: Codable, Identifiable {
-        public let id: Int
-        public let name: String
-        public let relationship_type: String
-        public let last_mentioned: String?
-    }
-
-    public let personal_facts: [PersonalFact]
-    public let favorite_topics: [Topic]
-    public let relationships: [Relationship]
-    public let conversation_stats: ConversationStats
-}
-
-// MARK: - Client
-
-public final class JunoAPIClient {
-    public static let shared = JunoAPIClient()
+/// A simple HTTP client for interacting with your backend. Update
+/// `baseURL` with your own endpoint. Each method is async/throws
+/// and returns either decoded DTOs or JSON dictionaries.
+final class APIClient {
+    private let baseURL: String
     private let session: URLSession
-    private let decoder: JSONDecoder
-    private let encoder: JSONEncoder
 
-    private init() {
-        let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = 60
-        config.timeoutIntervalForResource = 120
-        session = URLSession(configuration: config)
-
-        decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
-
-        encoder = JSONEncoder()
-        encoder.keyEncodingStrategy = .convertToSnakeCase
+    /// Creates a new client.
+    /// - Parameters:
+    ///   - baseURL: The base URL of your API (for example, your Digital Ocean droplet).
+    ///   - session: URLSession to use; defaults to `.shared`.
+    init(baseURL: String = "https://djpresence.com", session: URLSession = .shared) {
+        self.baseURL = baseURL
+        self.session = session
     }
 
-    public func chat(messages: [ChatMessageDTO], personality: PersonaMode = .Base) async throws -> ChatResponseDTO {
-        let url = AppConfig.baseURL.appendingPathComponent("/api/chat")
-        let req = ChatRequestDTO(messages: messages, personality: personality.rawValue)
-        return try await postJSON(url, req, ChatResponseDTO.self)
-    }
-
-    public func tts(text: String) async throws -> TTSResponseDTO {
-        let url = AppConfig.baseURL.appendingPathComponent("/api/tts")
-        let req = TTSRequestDTO(text: text)
-        return try await postJSON(url, req, TTSResponseDTO.self)
-    }
-
-    public func processVoice(audioData: Data, filename: String = "voice.m4a",
-                             mimeType: String = "audio/m4a",
-                             voiceMode: PersonaMode = .Base) async throws -> VoiceResponseDTO {
-        let url = AppConfig.baseURL.appendingPathComponent("/api/voice")
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        addHeaders(&request)
-        let boundary = "Boundary-\(UUID().uuidString)"
-        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
-        let body = buildMultipart(boundary: boundary,
-                                  fields: [("voice_mode", voiceMode.rawValue)],
-                                  fileField: ("audio_file", filename, mimeType, audioData))
-        request.httpBody = body
-
-        let (data, response) = try await session.data(for: request)
-        try validate(response, data: data)
-        return try decoder.decode(VoiceResponseDTO.self, from: data)
-    }
-
-    public func getMemorySummary() async throws -> MemorySummaryDTO {
-        let url = AppConfig.baseURL.appendingPathComponent("/api/memory/summary")
+    /// Fetches the memory summary from the server and decodes it into `MemorySummaryDTO`.
+    func getMemorySummary() async throws -> MemorySummaryDTO {
+        guard let url = URL(string: "\(baseURL)/api/memory/summary") else {
+            throw APIClientError.invalidURL
+        }
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
-        addHeaders(&request)
-        let (data, response) = try await session.data(for: request)
-        try validate(response, data: data)
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let (data, _) = try await session.data(for: request)
+        let decoder = JSONDecoder()
         return try decoder.decode(MemorySummaryDTO.self, from: data)
     }
 
-    // MARK: - Helpers
+    /// Builds a URL for audio file paths returned by the backend. Handles absolute and relative paths.
+    func buildAudioURL(from path: String) -> URL? {
+        if path.hasPrefix("http://") || path.hasPrefix("https://") {
+            return URL(string: path)
+        } else if path.hasPrefix("/") {
+            return URL(string: baseURL + path)
+        } else {
+            return URL(string: baseURL + "/" + path)
+        }
+    }
 
-    private func postJSON<T: Codable, R: Codable>(_ url: URL, _ body: T, _ type: R.Type) async throws -> R {
+    /// Sends a chat request to the server.
+    /// - Parameters:
+    ///   - messages: An array of message dictionaries. Each dictionary must map
+    ///     keys such as "role" and "content" to strings.
+    ///   - personality: The persona to use. Default is "Base".
+    /// - Returns: A JSON dictionary representing the server's response.
+    func chat(messages: [[String: String]], personality: String = "Base") async throws -> [String: Any] {
+        guard let url = URL(string: "\(baseURL)/api/chat") else {
+            throw APIClientError.invalidURL
+        }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        addHeaders(&request)
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try encoder.encode(body)
-
-        let (data, response) = try await session.data(for: request)
-        try validate(response, data: data)
-        return try decoder.decode(R.self, from: data)
-    }
-
-    private func addHeaders(_ request: inout URLRequest) {
-        request.setValue(AppConfig.clientVersion, forHTTPHeaderField: "X-Juno-Client")
-    }
-
-    private func validate(_ response: URLResponse, data: Data?) throws {
-        guard let http = response as? HTTPURLResponse else { return }
-        guard (200 ..< 300).contains(http.statusCode) else {
-            throw APIClientError.invalidHTTPStatus(http.statusCode, String(data: data ?? Data(), encoding: .utf8))
+        let body: [String: Any] = ["messages": messages, "personality": personality]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        let (data, _) = try await session.data(for: request)
+        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw APIClientError.noData
         }
+        return json
     }
 
-    private func buildMultipart(boundary: String,
-                                fields: [(name: String, value: String)],
-                                fileField: (name: String, filename: String, mimeType: String, data: Data)) -> Data {
+    /// Sends text to the text‑to‑speech endpoint and returns the JSON response.
+    func textToSpeech(text: String, voiceMode: String = "Base") async throws -> [String: Any] {
+        guard let url = URL(string: "\(baseURL)/api/tts") else {
+            throw APIClientError.invalidURL
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let body: [String: Any] = ["text": text, "voice_mode": voiceMode]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        let (data, _) = try await session.data(for: request)
+        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw APIClientError.noData
+        }
+        return json
+    }
+
+    /// Processes voice audio by sending it to the backend for transcription and AI response.
+    /// - Parameters:
+    ///   - audioData: The recorded audio data
+    ///   - filename: The filename for the audio file (e.g., "voice.m4a")
+    ///   - mimeType: The MIME type of the audio (e.g., "audio/m4a")
+    ///   - voiceMode: The personality mode to use
+    /// - Returns: A JSON dictionary with transcription, response, emotion data, etc.
+    func processVoice(audioData: Data, filename: String, mimeType: String, voiceMode: String) async throws -> [String: Any] {
+        guard let url = URL(string: "\(baseURL)/api/process_audio") else {
+            throw APIClientError.invalidURL
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        
+        // Create multipart form data
+        let boundary = "Boundary-\(UUID().uuidString)"
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        
         var body = Data()
-        let boundaryPrefix = "--\(boundary)\r\n"
-        for field in fields {
-            body.appendString(boundaryPrefix)
-            body.appendString("Content-Disposition: form-data; name=\"\(field.name)\"\r\n\r\n")
-            body.appendString("\(field.value)\r\n")
+        
+        // Add voice_mode field
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"voice_mode\"\r\n\r\n".data(using: .utf8)!)
+        body.append("\(voiceMode)\r\n".data(using: .utf8)!)
+        
+        // Add audio file
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"audio\"; filename=\"\(filename)\"\r\n".data(using: .utf8)!)
+        body.append("Content-Type: \(mimeType)\r\n\r\n".data(using: .utf8)!)
+        body.append(audioData)
+        body.append("\r\n".data(using: .utf8)!)
+        
+        // Close boundary
+        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
+        
+        request.httpBody = body
+        
+        print("🌐 Sending voice request to: \(url)")
+        print("🌐 Content-Type: multipart/form-data; boundary=\(boundary)")
+        print("🌐 Body size: \(body.count) bytes")
+        print("🌐 Voice mode: \(voiceMode)")
+        
+        let (data, response) = try await session.data(for: request)
+        
+        if let httpResponse = response as? HTTPURLResponse {
+            print("🌐 Response status: \(httpResponse.statusCode)")
         }
-        body.appendString(boundaryPrefix)
-        body.appendString("Content-Disposition: form-data; name=\"\(fileField.name)\"; filename=\"\(fileField.filename)\"\r\n")
-        body.appendString("Content-Type: \(fileField.mimeType)\r\n\r\n")
-        body.append(fileField.data)
-        body.appendString("\r\n")
-        body.appendString("--\(boundary)--\r\n")
-        return body
-    }
-}
-
-private extension Data {
-    mutating func appendString(_ string: String) {
-        if let data = string.data(using: .utf8) {
-            append(data)
+        
+        print("🌐 Response data: \(String(data: data, encoding: .utf8) ?? "Unable to decode response")")
+        
+        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw APIClientError.noData
         }
+        return json
     }
 }

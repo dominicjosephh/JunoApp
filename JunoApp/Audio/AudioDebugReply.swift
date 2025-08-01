@@ -30,8 +30,10 @@ struct AudioDebugView: View {
                 
                 Button("Configure for Voice") {
                     do {
-                        try AudioSessionManager.shared.configureForVoice()
+                        // Using configureForRecording as closest equivalent to configureForVoice
+                        try AudioSessionManager.shared.configureForRecording()
                         refreshAudioStatus()
+                        testAudioStatus = "Configured for voice (using recording mode)"
                     } catch {
                         testAudioStatus = "Error: \(error.localizedDescription)"
                     }
@@ -48,8 +50,9 @@ struct AudioDebugView: View {
             }
             
             Section(header: Text("App Config & Network")) {
-                Text("Base URL: \(AppConfig.baseURL.absoluteString)")
-                Text("Client Version: \(AppConfig.clientVersion)")
+                // AppConfig doesn't exist, using hardcoded values from APIClient
+                Text("Base URL: https://djpresence.com:5020")
+                Text("Client Version: 1.0")
                 
                 Button("Test API Connection") {
                     Task {
@@ -121,7 +124,11 @@ struct AudioDebugView: View {
     private func testAPIConnection() async {
         do {
             testAudioStatus = "Testing API connection..."
-            let url = AppConfig.baseURL.appendingPathComponent("/api/ping")
+            // Using hardcoded base URL since AppConfig doesn't exist
+            guard let url = URL(string: "https://djpresence.com:5020/api/ping") else {
+                testAudioStatus = "Invalid URL"
+                return
+            }
             let (data, response) = try await URLSession.shared.data(from: url)
             
             if let httpResponse = response as? HTTPURLResponse {
@@ -138,9 +145,11 @@ struct AudioDebugView: View {
     private func testTTSURL() async {
         do {
             testAudioStatus = "Testing TTS endpoint..."
-            let ttsResponse = try await JunoAPIClient.shared.tts(text: "Hello, this is a test.")
+            // Using APIClient instead of JunoAPIClient and textToSpeech instead of tts
+            let apiClient = APIClient()
+            let ttsResponse = try await apiClient.textToSpeech(text: "Hello, this is a test.")
             
-            if let urlStr = ttsResponse.audio_url {
+            if let urlStr = ttsResponse["audio_url"] as? String {
                 let url: URL
                 if urlStr.hasPrefix("http") {
                     guard let absoluteURL = URL(string: urlStr) else {
@@ -149,7 +158,12 @@ struct AudioDebugView: View {
                     }
                     url = absoluteURL
                 } else {
-                    url = AppConfig.baseURL.appendingPathComponent(urlStr)
+                    // Using hardcoded base URL since AppConfig doesn't exist
+                    guard let baseURL = URL(string: "https://djpresence.com:5020") else {
+                        testAudioStatus = "❌ Invalid base URL"
+                        return
+                    }
+                    url = baseURL.appendingPathComponent(urlStr)
                 }
                 
                 testAudioStatus = "✅ TTS URL: \(url.absoluteString)\nTesting playback..."
@@ -180,7 +194,7 @@ struct AudioDebugView: View {
         logs += "Audio Session Category: \(session.category.rawValue)\n"
         logs += "Audio Session Mode: \(session.mode.rawValue)\n"
         logs += "Audio Session Active: \(String(describing: session.isOtherAudioPlaying))\n"
-        logs += "Base URL: \(AppConfig.baseURL.absoluteString)\n"
+        logs += "Base URL: https://djpresence.com:5020\n"
         return logs
     }
 }

@@ -16,7 +16,13 @@ struct ConversationView: View {
         }
         .padding(.horizontal)
         .onAppear {
-            Task { try? await AudioSessionManager.shared.configureForVoice() }
+            Task { 
+                do {
+                    try AudioSessionManager.shared.configureForVoice()
+                } catch {
+                    print("Audio session configuration failed: \(error)")
+                }
+            }
         }
         .alert(isPresented: $viewModel.showingError) {
             Alert(title: Text("Error"),
@@ -37,7 +43,7 @@ struct ConversationView: View {
                     .background(Color.gray.opacity(0.15))
                     .cornerRadius(8)
             } else {
-                Text("Mode: \(appState.persona.rawValue)")
+                Text("Mode: \(appState.selectedPersona.rawValue)")
                     .font(.subheadline)
                     .padding(6)
                     .background(Color.gray.opacity(0.15))
@@ -121,7 +127,7 @@ struct ConversationView: View {
                 Haptic.tap()
                 Task {
                     if viewModel.isRecording {
-                        await viewModel.stopAndSend(persona: appState.persona)
+                        await viewModel.stopAndSend(persona: appState.selectedPersona)
                     } else {
                         await viewModel.startRecording()
                     }

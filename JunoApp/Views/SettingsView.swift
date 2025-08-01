@@ -3,7 +3,7 @@ import SwiftUI
 struct SettingsView: View {
     @EnvironmentObject private var appState: AppState
     @AppStorage("autoPlayVoice") private var autoPlayVoice: Bool = true
-    @AppStorage("defaultPersona") private var defaultPersonaRaw: String = PersonaMode.Base.rawValue
+    @AppStorage("defaultPersona") private var defaultPersonaRaw: String = PersonaMode.base.rawValue
 
     var body: some View {
         NavigationView {
@@ -16,7 +16,7 @@ struct SettingsView: View {
                     }
                     .onChange(of: defaultPersonaRaw) { newValue in
                         if let mode = PersonaMode(rawValue: newValue) {
-                            appState.persona = mode
+                            appState.selectedPersona = mode
                         }
                     }
                 }
@@ -24,22 +24,23 @@ struct SettingsView: View {
                     Toggle("Auto-play Juno’s Voice", isOn: $autoPlayVoice)
                 }
                 Section(header: Text("Spotify")) {
-                    Button(action: connectSpotify) {
+                    NavigationLink(destination: SpotifyView()) {
                         HStack {
                             Image(systemName: "music.note")
-                            Text("Connect Spotify")
+                            Text("Spotify Integration")
+                            Spacer()
+                            if SpotifyManager.shared.isConnected {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(.green)
+                            }
                         }
                     }
                 }
                 Section(header: Text("App Info")) {
-                    Text("Version: \(AppConfig.clientVersion)")
+                    Text("Version: 1.0")
                 }
             }
             .navigationTitle("Settings")
         }
-    }
-
-    private func connectSpotify() {
-        SpotifyManager.shared.connect()
     }
 }

@@ -1,5 +1,8 @@
-import Foundation
+import SwiftUI
 
-final class AppState: ObservableObject {
-    @Published var persona: PersonaMode = .Base
+@MainActor
+class AppState: ObservableObject {
+    @Published var selectedPersona: PersonaMode = .base
+    @Published var isPlaying: Bool = false
+    @Published var currentlyPlayingId: UUID?
 }

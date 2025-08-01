@@ -23,6 +23,12 @@ struct RootTabView: View {
                         Image(systemName: "brain.head.profile")
                         Text("Memory")
                     }
+                
+                SpotifyView()
+                    .tabItem {
+                        Image(systemName: "music.note")
+                        Text("Spotify")
+                    }
 
                 SettingsView()
                     .tabItem {

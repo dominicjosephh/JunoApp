@@ -1,240 +1,151 @@
-import AVFoundation
 import Foundation
-import SwiftUI
+import AVFoundation
+import Combine
 
 @MainActor
-final class ChatViewModel: ObservableObject {
-    // UI
+class ChatViewModel: ObservableObject {
     @Published var messages: [ChatMessage] = []
-    @Published var persona: PersonaMode = .Base
-    @Published var isLoading = false
-    @Published var speakReplies: Bool = true
-
-    // Playback state
-    @Published var currentlyPlayingMessageID: UUID? = nil
-    @Published var isGlobalPlaying: Bool = false
-
-    // Audio
-    private var player: AVPlayer?
-    private var timeControlObserver: NSKeyValueObservation?
-    private var endObserver: Any?
-
-    var isSpeaking: Bool { player?.timeControlStatus == .playing }
-
-    // MARK: - Init
-
+    @Published var isPlaying: Bool = false
+    @Published var currentlyPlayingId: UUID?
+    @Published var error: String?
+    
+    private var audioPlayer: AVPlayer?
+    private var playerObserver: Any?
+    private let apiClient = APIClient()
+    private var cancellables = Set<AnyCancellable>()
+    
     init() {
-        configureAudioSession()
+        // Initialize with a welcome message
+        messages.append(assistantMessage("Hello! I'm Juno. How can I help you today?"))
     }
-
-    // MARK: - Audio Session
-
-    private func configureAudioSession() {
-        do {
-            try AudioSessionManager.shared.configureForPlayback()
-            #if DEBUG
-                AudioDiagnostics.logSessionInfo(tag: "AFTER configureAudioSession()")
-            #endif
-        } catch {
-            #if DEBUG
-                debugPrint("⚠️ Audio session configuration failed: \(error)")
-            #endif
-        }
-    }
-
-    // MARK: - Public API
-
-    func sendUserMessage(_ text: String) {
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-
-        messages.append(ChatMessage(text: trimmed, isUser: true))
-        Task { await fetchJunoReply(for: trimmed) }
-    }
-
-    func toggleGlobalPlayPause() {
-        if let player = player {
-            if player.timeControlStatus == .playing {
-                pause()
-            } else {
-                player.play()
-                isGlobalPlaying = true
-            }
-        } else {
-            if let lastAssistant = messages.last(where: { !$0.isUser && $0.audioURL != nil }),
-               let url = lastAssistant.audioURL {
-                play(url: url, messageID: lastAssistant.id)
-            }
-        }
-    }
-
-    func togglePlay(for message: ChatMessage) {
-        guard let url = message.audioURL else { return }
-        if isPlaying(message: message) {
-            pause()
-            currentlyPlayingMessageID = nil
-        } else {
-            play(url: url, messageID: message.id)
-        }
-    }
-
-    func isPlaying(message: ChatMessage) -> Bool {
-        currentlyPlayingMessageID == message.id && isSpeaking
-    }
-
-    func stopSpeaking() {
-        pause()
-        currentlyPlayingMessageID = nil
-    }
-
-    // MARK: - Networking / TTS
-
-    private func fetchJunoReply(for text: String) async {
-        isLoading = true
-        defer { isLoading = false }
-
-        do {
-            let chatReq = [ChatMessageDTO(role: "user", content: text)]
-            let response = try await JunoAPIClient.shared.chat(messages: chatReq, personality: persona)
-            guard let replyText = response.reply, !replyText.isEmpty else {
-                messages.append(ChatMessage(text: "(No reply)", isUser: false))
-                return
-            }
-
-            var junoMsg = ChatMessage(text: replyText, isUser: false)
-            messages.append(junoMsg)
-
-            guard speakReplies else { return }
-
-            let ttsResp = try await JunoAPIClient.shared.tts(text: replyText)
-            if let urlStr = ttsResp.audio_url {
-                // Handle both absolute and relative URLs
-                let url: URL
-                if urlStr.hasPrefix("http") {
-                    guard let absoluteURL = URL(string: urlStr) else {
-                        #if DEBUG
-                            debugPrint("❌ Invalid TTS URL: \(urlStr)")
-                        #endif
-                        messages.append(ChatMessage(text: "Invalid TTS URL received", isUser: false))
-                        return
+    
+    func sendMessage(_ text: String) {
+        // Add user message
+        messages.append(userMessage(text))
+        
+        // Get AI response
+        Task {
+            do {
+                // Configure audio session for playback
+                try AudioSessionManager.shared.configureForPlayback()
+                
+                let response = try await apiClient.chat(messages: [
+                    ["role": "user", "content": text]
+                ])
+                
+                // Add assistant message
+                if let reply = response["reply"] as? String {
+                    messages.append(assistantMessage(reply))
+                    
+                    // Get TTS audio
+                    if !reply.isEmpty {
+                        await getTTSAndPlay(for: reply)
                     }
-                    url = absoluteURL
-                } else {
-                    url = AppConfig.baseURL.appendingPathComponent(urlStr)
                 }
-
-                #if DEBUG
-                    debugPrint("🔗 TTS URL: \(url.absoluteString)")
-                    AudioDiagnostics.logURLRequest(url: url, tag: "Chat TTS")
-                #endif
-
-                if let idx = messages.firstIndex(where: { $0.id == junoMsg.id }) {
-                    junoMsg.audioURL = url
-                    messages[idx] = junoMsg
-                }
-                play(url: url, messageID: junoMsg.id)
-            } else {
-                #if DEBUG
-                    debugPrint("⚠️ No audio URL in TTS response")
-                #endif
+            } catch {
+                showError("Failed to send message: \(error.localizedDescription)")
             }
-        } catch {
-            messages.append(ChatMessage(text: "Error: \(error.localizedDescription)", isUser: false))
         }
     }
-
-    // MARK: - Playback
-
-    private func play(url: URL, messageID: UUID) {
-        #if DEBUG
-            AudioDiagnostics.logURLRequest(url: url, tag: "ChatViewModel Playback")
-        #endif
-        
-        // Configure audio session for playback
+    
+    private func getTTSAndPlay(for text: String) async {
         do {
-            try AudioSessionManager.shared.configureForPlayback()
-        } catch {
-            #if DEBUG
-                debugPrint("❌ Audio session configuration failed: \(error)")
-                AudioDiagnostics.logAudioPlaybackError(error: error, context: "ChatViewModel session config")
-            #endif
-            return
-        }
-        
-        pause() // stop any active playback
-
-        let item = AVPlayerItem(url: url)
-        player = AVPlayer(playerItem: item)
-        currentlyPlayingMessageID = messageID
-
-        #if DEBUG
-            AudioDiagnostics.logSessionInfo(tag: "BEFORE player.play()")
-        #endif
-
-        // Observe timeControlStatus to catch instant failures
-        timeControlObserver = player?.observe(\.timeControlStatus, options: [.new]) { [weak self] player, _ in
-            Task { @MainActor in
-                guard let self = self else { return }
-                #if DEBUG
-                    debugPrint("🎧 AVPlayer timeControlStatus: \(player.timeControlStatus.rawValue)")
-                #endif
+            let ttsResponse = try await apiClient.textToSpeech(text: text)
+            
+            if let audioURLString = ttsResponse["audio_url"] as? String {
+                // Update last message with audio URL
+                if let lastMessage = messages.last {
+                    let audioURL = apiClient.buildAudioURL(from: audioURLString)
+                    messages[messages.count - 1] = ChatMessage(
+                        text: lastMessage.text,
+                        isUser: lastMessage.isUser,
+                        audioURL: audioURL
+                    )
+                    
+                    // Play audio
+                    if let url = audioURL {
+                        playAudio(from: url, messageId: lastMessage.id)
+                    }
+                }
             }
+        } catch {
+            showError("TTS failed: \(error.localizedDescription)")
         }
-
-        // Observe completion
-        endObserver = NotificationCenter.default.addObserver(
+    }
+    
+    func playAudio(from url: URL, messageId: UUID) {
+        // Stop any currently playing audio
+        stopAudio()
+        
+        // Create player item
+        let playerItem = AVPlayerItem(url: url)
+        
+        // Add observer for when audio finishes
+        playerObserver = NotificationCenter.default.addObserver(
             forName: .AVPlayerItemDidPlayToEndTime,
-            object: item,
+            object: playerItem,
             queue: .main
         ) { [weak self] _ in
             Task { @MainActor in
-                guard let self = self else { return }
-                self.pause()
-                self.currentlyPlayingMessageID = nil
+                self?.audioDidFinishPlaying()
             }
         }
-
-        player?.play()
-        isGlobalPlaying = true
-
+        
+        // Create and configure player
+        audioPlayer = AVPlayer(playerItem: playerItem)
+        audioPlayer?.play()
+        
+        // Update UI state
+        isPlaying = true
+        currentlyPlayingId = messageId
+        
+        // Log for debugging
         #if DEBUG
-            AudioDiagnostics.logPlayerStatus(player: player, tag: "ChatViewModel after play()")
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                AudioDiagnostics.logSessionInfo(tag: "AFTER player.play()")
-                AudioDiagnostics.logPlayerStatus(player: self.player, tag: "ChatViewModel delayed check")
-                if let err = item.error {
-                    AudioDiagnostics.logAudioPlaybackError(error: err, context: "ChatViewModel PlayerItem")
-                    debugPrint("❌ Player item error: \(err.localizedDescription)")
-                }
-                debugPrint("⏱️ Player rate: \(self.player?.rate ?? -1)")
-            }
+            AudioDiagnostics.logPlayerStatus(player: audioPlayer, tag: "ChatViewModel playAudio")
         #endif
     }
-
-    private func pause() {
-        player?.pause()
-        player = nil
-        isGlobalPlaying = false
-        timeControlObserver = nil
-        if let endObserver = endObserver {
-            NotificationCenter.default.removeObserver(endObserver)
-            self.endObserver = nil
+    
+    func stopAudio() {
+        audioPlayer?.pause()
+        audioPlayer = nil
+        
+        if let observer = playerObserver {
+            NotificationCenter.default.removeObserver(observer)
+            playerObserver = nil
+        }
+        
+        isPlaying = false
+        currentlyPlayingId = nil
+    }
+    
+    private func audioDidFinishPlaying() {
+        isPlaying = false
+        currentlyPlayingId = nil
+    }
+    
+    func togglePlay(for message: ChatMessage) {
+        if currentlyPlayingId == message.id && isPlaying {
+            stopAudio()
+        } else if let audioURL = message.audioURL {
+            playAudio(from: audioURL, messageId: message.id)
         }
     }
-
+    
+    func isPlaying(message: ChatMessage) -> Bool {
+        return currentlyPlayingId == message.id && isPlaying
+    }
+    
+    private func showError(_ message: String) {
+        self.error = message
+        // Clear error after 5 seconds
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+            self.error = nil
+        }
+    }
+    
     deinit {
-        timeControlObserver = nil
-        if let endObserver = endObserver {
-            NotificationCenter.default.removeObserver(endObserver)
+        Task { @MainActor in
+            self.stopAudio()
         }
     }
-}
-
-// MARK: - ChatMessage model (keep near ChatViewModel for clarity)
-
-struct ChatMessage: Identifiable, Equatable {
-    let id = UUID()
-    let text: String
-    let isUser: Bool
-    var audioURL: URL? = nil
 }

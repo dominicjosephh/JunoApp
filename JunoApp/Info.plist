@@ -40,6 +40,17 @@
 		<string>bluetooth-central</string>
 		<string>remote-notification</string>
 	</array>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>juno-spotify-auth</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>junovox</string>
+			</array>
+		</dict>
+	</array>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UIRequiredDeviceCapabilities</key>

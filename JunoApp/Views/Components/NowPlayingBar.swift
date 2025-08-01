@@ -14,10 +14,24 @@ struct NowPlayingBar: View {
                         .lineLimit(1)
                 }
                 Spacer()
-                Button(action: spotify.pause) {
-                    Image(systemName: "pause.fill")
+                Button {
+                    Task {
+                        switch spotify.currentPlaybackState {
+                        case .playing:
+                            await spotify.pause()
+                        case .paused, .stopped:
+                            await spotify.play()
+                        }
+                    }
+                } label: {
+                    Image(systemName: spotify.currentPlaybackState.systemImageName)
                 }
-                Button(action: spotify.next) {
+                
+                Button {
+                    Task {
+                        await spotify.next()
+                    }
+                } label: {
                     Image(systemName: "forward.fill")
                 }
             }

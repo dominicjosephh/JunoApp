@@ -48,66 +48,75 @@ final class ConversationViewModel: ObservableObject {
         uiStateText = "Processing…"
         
         do {
-            guard let data = recorder.stop() else {
+            guard let audioData = recorder.stop() else {
                 showError("No audio data captured.")
                 uiStateText = "Tap to talk"
                 return
             }
             
-            let voiceResp = try await JunoAPIClient.shared.processVoice(
-                audioData: data,
+            print("🎤 Audio data captured: \(audioData.count) bytes")
+            
+            // Process voice with backend
+            let apiClient = APIClient()
+            print("🌐 Sending voice to backend with mode: \(persona.rawValue)")
+            
+            let voiceResp = try await apiClient.processVoice(
+                audioData: audioData,
                 filename: "voice.m4a",
                 mimeType: "audio/m4a",
-                voiceMode: persona
+                voiceMode: persona.rawValue
             )
             
-            var turn = VoiceConversationTurn()
-            turn.userText = "🎤 (voice sent)" // Replace with transcript when backend returns it
+            print("✅ Backend response received: \(voiceResp)")
             
-            if let reply = voiceResp.reply {
+            // Create conversation turn
+            var turn = VoiceConversationTurn()
+            
+            // Add user transcription if available
+            if let transcription = voiceResp["transcription"] as? String {
+                turn.userText = transcription
+            } else {
+                turn.userText = "🎤 (voice sent)"
+            }
+            
+            // Add Juno's response (backend returns "reply", not "response")
+            if let reply = voiceResp["reply"] as? String {
                 turn.junoText = reply
             } else {
                 turn.junoText = "(No reply)"
             }
             
-            if let emo = voiceResp.emotion_data?.emotion {
-                turn.detectedEmotion = emo
+            // Add emotion data if available
+            if let emotionData = voiceResp["emotion_data"] as? [String: Any],
+               let emotion = emotionData["emotion"] as? String {
+                turn.detectedEmotion = emotion
             }
-            if let adapted = voiceResp.adapted_voice_mode {
+            
+            // Handle adapted voice mode
+            if let adapted = voiceResp["adapted_voice_mode"] as? String {
                 turn.adaptedMode = adapted
                 lastAdaptedMode = adapted
-            } else if let serverMode = voiceResp.voice_mode {
+            } else if let serverMode = voiceResp["voice_mode"] as? String {
                 lastAdaptedMode = serverMode
             }
             
             turns.append(turn)
             
-            // TTS
-            if let reply = voiceResp.reply {
+            // Generate and play TTS if we have a response
+            if let reply = voiceResp["reply"] as? String, !reply.isEmpty {
                 do {
-                    let ttsResp = try await JunoAPIClient.shared.tts(text: reply)
-                    if let urlStr = ttsResp.audio_url {
-                        let url: URL
-                        if urlStr.hasPrefix("http") {
-                            guard let absoluteURL = URL(string: urlStr) else {
-                                showError("Invalid TTS URL: \(urlStr)")
-                                uiStateText = "Tap to talk"
-                                return
-                            }
-                            url = absoluteURL
+                    let ttsResp = try await apiClient.textToSpeech(text: reply, voiceMode: persona.rawValue)
+                    if let urlStr = ttsResp["audio_url"] as? String {
+                        if let url = apiClient.buildAudioURL(from: urlStr) {
+                            self.audioUrl = url
+                            print("🔗 TTS URL: \(url)")
+                            #if DEBUG
+                                AudioDiagnostics.logURLRequest(url: url, tag: "Voice Response TTS")
+                            #endif
+                            play(url)
                         } else {
-                            url = AppConfig.baseURL.appendingPathComponent(urlStr)
+                            showError("Invalid TTS URL: \(urlStr)")
                         }
-                        
-                        // Debug
-                        self.audioUrl = url
-                        print("🔗 TTS URL: \(url)")
-                        
-                        #if DEBUG
-                            AudioDiagnostics.logURLRequest(url: url, tag: "Voice Response TTS")
-                        #endif
-                        
-                        play(url)
                     } else {
                         print("⚠️ No audio URL in TTS response")
                     }
@@ -122,7 +131,12 @@ final class ConversationViewModel: ObservableObject {
             
             uiStateText = "Tap to talk"
         } catch {
-            showError(error.localizedDescription)
+            print("❌ Voice processing error: \(error)")
+            print("❌ Error description: \(error.localizedDescription)")
+            if let apiError = error as? APIClientError {
+                print("❌ API Client Error: \(apiError)")
+            }
+            showError("Voice processing failed: \(error.localizedDescription)")
             uiStateText = "Tap to talk"
         }
     }
