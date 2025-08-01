@@ -31,6 +31,8 @@
 	<string>Juno Vox may access music playback to control Spotify/Apple Music features.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Juno Vox needs microphone access to record your voice and talk with you.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Juno Vox needs speech recognition access to convert your voice to text for conversations.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>
