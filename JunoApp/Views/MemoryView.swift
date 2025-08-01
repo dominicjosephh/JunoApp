@@ -1,49 +1,6 @@
 import SwiftUI
 
-// MARK: - Data models
-
-/// Represents high‑level conversation statistics.
-struct ConversationStats {
-    let totalConversations: Int
-    let positiveCount: Int
-    let negativeCount: Int
-    let avgImportance: Double
-}
-
-/// Represents a single personal fact learned by Juno.
-struct PersonalFact: Identifiable {
-    let id = UUID()
-    let key: String
-    let value: String
-    let confidence: Double
-}
-
-/// Represents one of the user's favourite topics.
-struct FavoriteTopic: Identifiable {
-    let id = UUID()
-    let topic: String
-    let mentions: Int
-}
-
-/// Represents an important relationship in the user's life.
-struct Relationship: Identifiable {
-    let id = UUID()
-    let name: String
-    let relationshipType: String
-    let lastMentioned: Date?
-}
-
-/// Aggregates all of the above pieces of information into a single
-/// summary object. If you already have a model for this coming
-/// from your API, you can delete this and use your own type.
-struct MemorySummary {
-    let conversationStats: ConversationStats
-    let personalFacts: [PersonalFact]
-    let favoriteTopics: [FavoriteTopic]
-    let relationships: [Relationship]
-}
-
-// MARK: - View model removed (using ViewModels/MemoryViewModel.swift instead)
+// MARK: - Using DTOs from Models/MemorySummaryDTO.swift instead of local definitions
 
 // MARK: - View
 

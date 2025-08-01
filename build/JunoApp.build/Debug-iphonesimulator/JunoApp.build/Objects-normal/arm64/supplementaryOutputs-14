@@ -1,0 +1,18 @@
+"/Users/dominicadame/Documents/JunoAppUpdaate1/JunoApp/Audio/AudioSession.swift":
+  object: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/AudioSession.o"
+  swift-dependencies: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/AudioSession.swiftdeps"
+  dependencies: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/AudioSession.d"
+  const-values: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/AudioSession.swiftconstvalues"
+  diagnostics: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/AudioSession.dia"
+"/Users/dominicadame/Documents/JunoAppUpdaate1/JunoApp/ViewModels/MemoryViewModel.swift":
+  swift-dependencies: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/MemoryViewModel.swiftdeps"
+  const-values: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/MemoryViewModel.swiftconstvalues"
+  diagnostics: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/MemoryViewModel.dia"
+  object: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/MemoryViewModel.o"
+  dependencies: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/MemoryViewModel.d"
+"/Users/dominicadame/Documents/JunoAppUpdaate1/JunoApp/Models/MemorySummaryDTO.swift":
+  diagnostics: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/MemorySummaryDTO.dia"
+  dependencies: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/MemorySummaryDTO.d"
+  const-values: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/MemorySummaryDTO.swiftconstvalues"
+  object: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/MemorySummaryDTO.o"
+  swift-dependencies: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/MemorySummaryDTO.swiftdeps"

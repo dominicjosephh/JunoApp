@@ -57,7 +57,7 @@ final class ConversationViewModel: ObservableObject {
             print("🎤 Audio data captured: \(audioData.count) bytes")
             
             // Process voice with backend
-            let apiClient = APIClient()
+            let apiClient = JunoAPIClient()
             print("🌐 Sending voice to backend with mode: \(persona.rawValue)")
             
             let voiceResp = try await apiClient.processVoice(

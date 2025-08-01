@@ -1,0 +1,18 @@
+"/Users/dominicadame/Documents/JunoAppUpdaate1/JunoApp/Views/ConnectionTestView.swift":
+  object: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/ConnectionTestView.o"
+  const-values: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/ConnectionTestView.swiftconstvalues"
+  swift-dependencies: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/ConnectionTestView.swiftdeps"
+  diagnostics: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/ConnectionTestView.dia"
+  dependencies: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/ConnectionTestView.d"
+"/Users/dominicadame/Documents/JunoAppUpdaate1/JunoApp/Views/SpotifyView.swift":
+  object: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/SpotifyView.o"
+  swift-dependencies: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/SpotifyView.swiftdeps"
+  diagnostics: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/SpotifyView.dia"
+  dependencies: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/SpotifyView.d"
+  const-values: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/SpotifyView.swiftconstvalues"
+"/Users/dominicadame/Documents/JunoAppUpdaate1/JunoApp/Views/Components/MessageBubble.swift":
+  object: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/MessageBubble.o"
+  dependencies: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/MessageBubble.d"
+  diagnostics: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/MessageBubble.dia"
+  swift-dependencies: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/MessageBubble.swiftdeps"
+  const-values: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/MessageBubble.swiftconstvalues"

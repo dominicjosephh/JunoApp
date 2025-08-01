@@ -3,7 +3,7 @@ import Speech
 import Foundation
 
 @MainActor
-final class VoiceRecordingManager: ObservableObject {
+final class VoiceRecordingManager: NSObject, ObservableObject {
     // MARK: - Published Properties
     @Published var isRecording = false
     @Published var audioLevel: Float = 0.0
@@ -52,7 +52,8 @@ final class VoiceRecordingManager: ObservableObject {
     }
     
     // MARK: - Initialization
-    init() {
+    override init() {
+        super.init()
         setupSpeechRecognizer()
         requestPermissions()
     }
@@ -101,13 +102,17 @@ final class VoiceRecordingManager: ObservableObject {
         // Check microphone permission
         let microphoneStatus = AVAudioSession.sharedInstance().recordPermission
         if microphoneStatus == .undetermined {
-            let granted = await AVAudioSession.sharedInstance().requestRecordPermission()
+            let granted = await withCheckedContinuation { continuation in
+                AVAudioSession.sharedInstance().requestRecordPermission { granted in
+                    continuation.resume(returning: granted)
+                }
+            }
             if !granted {
-                await updatePermissionStatus(.denied)
+                updatePermissionStatus(.denied)
                 return
             }
         } else if microphoneStatus == .denied {
-            await updatePermissionStatus(.denied)
+            updatePermissionStatus(.denied)
             return
         }
         
@@ -115,14 +120,18 @@ final class VoiceRecordingManager: ObservableObject {
         let speechStatus = SFSpeechRecognizer.authorizationStatus()
         switch speechStatus {
         case .notDetermined:
-            let status = await SFSpeechRecognizer.requestAuthorization()
-            await handleSpeechAuthorizationStatus(status)
+            let status = await withCheckedContinuation { continuation in
+                SFSpeechRecognizer.requestAuthorization { status in
+                    continuation.resume(returning: status)
+                }
+            }
+            handleSpeechAuthorizationStatus(status)
         case .authorized:
-            await updatePermissionStatus(.authorized)
+            updatePermissionStatus(.authorized)
         case .denied, .restricted:
-            await updatePermissionStatus(.denied)
+            updatePermissionStatus(.denied)
         @unknown default:
-            await updatePermissionStatus(.denied)
+            updatePermissionStatus(.denied)
         }
     }
     
@@ -272,7 +281,9 @@ final class VoiceRecordingManager: ObservableObject {
     }
     
     deinit {
-        stopRecording()
+        Task { @MainActor in
+            stopRecording()
+        }
     }
 }
 

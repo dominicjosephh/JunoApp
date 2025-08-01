@@ -1,0 +1,18 @@
+"/Users/dominicadame/Documents/JunoAppUpdaate1/JunoApp/Views/SettingsView.swift":
+  swift-dependencies: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/SettingsView.swiftdeps"
+  object: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/SettingsView.o"
+  dependencies: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/SettingsView.d"
+  diagnostics: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/SettingsView.dia"
+  const-values: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/SettingsView.swiftconstvalues"
+"/Users/dominicadame/Documents/JunoAppUpdaate1/JunoApp/Views/Components/VoiceRecordingIndicator.swift":
+  swift-dependencies: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/VoiceRecordingIndicator.swiftdeps"
+  dependencies: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/VoiceRecordingIndicator.d"
+  const-values: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/VoiceRecordingIndicator.swiftconstvalues"
+  object: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/VoiceRecordingIndicator.o"
+  diagnostics: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/VoiceRecordingIndicator.dia"
+"/Users/dominicadame/Documents/JunoAppUpdaate1/JunoApp/App/RootTabView.swift":
+  dependencies: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/RootTabView.d"
+  diagnostics: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/RootTabView.dia"
+  swift-dependencies: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/RootTabView.swiftdeps"
+  object: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/RootTabView.o"
+  const-values: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/RootTabView.swiftconstvalues"

@@ -1,0 +1,16 @@
+{
+  "source": "/Users/dominicadame/Documents/JunoAppUpdaate1/JunoApp/Views/ChatView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Type a message...",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 22
+        }
+      }
+    ]
+  },
+  "version": 1
+}

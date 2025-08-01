@@ -1,0 +1,18 @@
+"/Users/dominicadame/Documents/JunoAppUpdaate1/JunoApp/Audio/AudioRecorder.swift":
+  diagnostics: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/AudioRecorder.dia"
+  swift-dependencies: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/AudioRecorder.swiftdeps"
+  object: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/AudioRecorder.o"
+  dependencies: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/AudioRecorder.d"
+  const-values: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/AudioRecorder.swiftconstvalues"
+"/Users/dominicadame/Documents/JunoAppUpdaate1/JunoApp/ViewModels/ConversationViewModel.swift":
+  const-values: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/ConversationViewModel.swiftconstvalues"
+  object: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/ConversationViewModel.o"
+  swift-dependencies: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/ConversationViewModel.swiftdeps"
+  diagnostics: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/ConversationViewModel.dia"
+  dependencies: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/ConversationViewModel.d"
+"/Users/dominicadame/Documents/JunoAppUpdaate1/JunoApp/Utils/Logger.swift":
+  swift-dependencies: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/Logger.swiftdeps"
+  object: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/Logger.o"
+  dependencies: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/Logger.d"
+  diagnostics: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/Logger.dia"
+  const-values: "/Users/dominicadame/Documents/JunoAppUpdaate1/build/JunoApp.build/Debug-iphonesimulator/JunoApp.build/Objects-normal/arm64/Logger.swiftconstvalues"

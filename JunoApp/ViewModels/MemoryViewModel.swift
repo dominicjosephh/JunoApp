@@ -9,9 +9,9 @@ final class MemoryViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var isLoading: Bool = false
 
-    private let apiClient: APIClient
+    private let apiClient: JunoAPIClient
 
-    init(apiClient: APIClient = APIClient()) {
+    init(apiClient: JunoAPIClient = JunoAPIClient()) {
         self.apiClient = apiClient
     }
 

@@ -11,7 +11,7 @@ class ChatViewModel: ObservableObject {
     
     private var audioPlayer: AVPlayer?
     private var playerObserver: Any?
-    private let apiClient = APIClient()
+    private let apiClient = JunoAPIClient()
     private var cancellables = Set<AnyCancellable>()
     
     init() {

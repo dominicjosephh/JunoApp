@@ -1,0 +1,88 @@
+{
+  "source": "/Users/dominicadame/Documents/JunoAppUpdaate1/JunoApp/Views/ConnectionTestView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Connection Test",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 100
+        }
+      },
+      {
+        "comment": "",
+        "key": "API Connection Status",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 16
+        }
+      },
+      {
+        "comment": "",
+        "key": "Last tested: %@",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 21
+        }
+      },
+      {
+        "comment": "",
+        "key": "Overall Status:",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 32
+        }
+      },
+      {
+        "comment": "",
+        "key": "Base URL:",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 41
+        }
+      },
+      {
+        "comment": "",
+        "key": "Endpoint Tests",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 57
+        }
+      },
+      {
+        "comment": "",
+        "key": "Testing...",
+        "location": {
+          "startingColumn": 56,
+          "startingLine": 76
+        }
+      },
+      {
+        "comment": "",
+        "key": "Run Connection Test",
+        "location": {
+          "startingColumn": 71,
+          "startingLine": 76
+        }
+      },
+      {
+        "comment": "",
+        "key": "HTTP %lld",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 158
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lldms",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 167
+        }
+      }
+    ]
+  },
+  "version": 1
+}

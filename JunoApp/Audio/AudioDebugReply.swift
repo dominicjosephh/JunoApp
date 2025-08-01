@@ -146,7 +146,7 @@ struct AudioDebugView: View {
         do {
             testAudioStatus = "Testing TTS endpoint..."
             // Using APIClient instead of JunoAPIClient and textToSpeech instead of tts
-            let apiClient = APIClient()
+            let apiClient = JunoAPIClient()
             let ttsResponse = try await apiClient.textToSpeech(text: "Hello, this is a test.")
             
             if let urlStr = ttsResponse["audio_url"] as? String {

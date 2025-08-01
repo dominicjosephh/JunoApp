@@ -25,7 +25,9 @@ enum APIClientError: LocalizedError {
 /// A simple HTTP client for interacting with your backend. Update
 /// `baseURL` with your own endpoint. Each method is async/throws
 /// and returns either decoded DTOs or JSON dictionaries.
-final class APIClient {
+final class JunoAPIClient {
+    static let shared = JunoAPIClient()
+    
     private let baseURL: String
     private let session: URLSession
 
@@ -157,4 +159,110 @@ final class APIClient {
         }
         return json
     }
+    
+    /// Tests connection to all API endpoints
+    func testConnection() async -> ConnectionTestResult {
+        let startTime = Date()
+        var endpointResults: [EndpointTestResult] = []
+        
+        // Test each endpoint
+        let endpoints = [
+            ("Health Check", "/api/health"),
+            ("Chat", "/api/chat"),
+            ("TTS", "/api/tts"),
+            ("Memory Summary", "/api/memory/summary"),
+            ("Performance", "/api/performance")
+        ]
+        
+        for (name, path) in endpoints {
+            let result = await testEndpoint(name: name, path: path)
+            endpointResults.append(result)
+        }
+        
+        // Determine overall status
+        let successCount = endpointResults.filter { $0.status == .success }.count
+        let overallStatus: ConnectionStatus
+        
+        if successCount == endpointResults.count {
+            overallStatus = .success
+        } else if successCount > 0 {
+            overallStatus = .partial
+        } else {
+            overallStatus = .failed
+        }
+        
+        return ConnectionTestResult(
+            baseURL: baseURL,
+            timestamp: startTime,
+            overallStatus: overallStatus,
+            endpointResults: endpointResults
+        )
+    }
+    
+    private func testEndpoint(name: String, path: String) async -> EndpointTestResult {
+        let startTime = Date()
+        let fullURL = "\(baseURL)\(path)"
+        
+        do {
+            guard let url = URL(string: fullURL) else {
+                return EndpointTestResult(
+                    name: name,
+                    url: fullURL,
+                    status: .failed,
+                    statusCode: nil,
+                    responseTime: Date().timeIntervalSince(startTime),
+                    error: "Invalid URL"
+                )
+            }
+            
+            let (_, response) = try await session.data(from: url)
+            let httpResponse = response as? HTTPURLResponse
+            let statusCode = httpResponse?.statusCode ?? 0
+            
+            let status: ConnectionStatus = (200...299).contains(statusCode) ? .success : .failed
+            
+            return EndpointTestResult(
+                name: name,
+                url: fullURL,
+                status: status,
+                statusCode: statusCode,
+                responseTime: Date().timeIntervalSince(startTime),
+                error: nil
+            )
+            
+        } catch {
+            return EndpointTestResult(
+                name: name,
+                url: fullURL,
+                status: .failed,
+                statusCode: nil,
+                responseTime: Date().timeIntervalSince(startTime),
+                error: error.localizedDescription
+            )
+        }
+    }
+}
+
+// MARK: - Connection Test Models
+
+struct ConnectionTestResult {
+    let baseURL: String
+    let timestamp: Date
+    let overallStatus: ConnectionStatus
+    let endpointResults: [EndpointTestResult]
+}
+
+struct EndpointTestResult {
+    let name: String
+    let url: String
+    let status: ConnectionStatus
+    let statusCode: Int?
+    let responseTime: TimeInterval
+    let error: String?
+}
+
+enum ConnectionStatus {
+    case success
+    case partial
+    case failed
 }

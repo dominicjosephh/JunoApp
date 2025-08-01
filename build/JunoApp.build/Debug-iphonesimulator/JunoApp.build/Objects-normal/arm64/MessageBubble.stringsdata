@@ -1,0 +1,24 @@
+{
+  "source": "/Users/dominicadame/Documents/JunoAppUpdaate1/JunoApp/Views/Components/MessageBubble.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Pause",
+        "location": {
+          "startingColumn": 74,
+          "startingLine": 27
+        }
+      },
+      {
+        "comment": "",
+        "key": "Play",
+        "location": {
+          "startingColumn": 84,
+          "startingLine": 27
+        }
+      }
+    ]
+  },
+  "version": 1
+}

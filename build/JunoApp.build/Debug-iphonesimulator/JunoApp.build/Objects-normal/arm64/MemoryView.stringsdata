@@ -1,0 +1,128 @@
+{
+  "source": "/Users/dominicadame/Documents/JunoAppUpdaate1/JunoApp/Views/MemoryView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Juno’s Memory",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 74
+        }
+      },
+      {
+        "comment": "",
+        "key": "No memory data available.",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 70
+        }
+      },
+      {
+        "comment": "",
+        "key": "Loading Juno’s Memory…",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 17
+        }
+      },
+      {
+        "comment": "",
+        "key": "Conversation Stats",
+        "location": {
+          "startingColumn": 46,
+          "startingLine": 21
+        }
+      },
+      {
+        "comment": "",
+        "key": "Personal Facts",
+        "location": {
+          "startingColumn": 50,
+          "startingLine": 29
+        }
+      },
+      {
+        "comment": "",
+        "key": "Favorite Topics",
+        "location": {
+          "startingColumn": 50,
+          "startingLine": 42
+        }
+      },
+      {
+        "comment": "",
+        "key": "Relationships",
+        "location": {
+          "startingColumn": 50,
+          "startingLine": 55
+        }
+      },
+      {
+        "comment": "",
+        "key": "Total: %lld",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 22
+        }
+      },
+      {
+        "comment": "",
+        "key": "Positive: %lld",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 23
+        }
+      },
+      {
+        "comment": "",
+        "key": "Negative: %lld",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 24
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@: %@",
+        "location": {
+          "startingColumn": 46,
+          "startingLine": 32
+        }
+      },
+      {
+        "comment": "",
+        "key": "Confidence: %@",
+        "location": {
+          "startingColumn": 46,
+          "startingLine": 33
+        }
+      },
+      {
+        "comment": "",
+        "key": "Mentions: %lld",
+        "location": {
+          "startingColumn": 46,
+          "startingLine": 46
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@ – %@",
+        "location": {
+          "startingColumn": 46,
+          "startingLine": 58
+        }
+      },
+      {
+        "comment": "",
+        "key": "Last mentioned: %@",
+        "location": {
+          "startingColumn": 50,
+          "startingLine": 60
+        }
+      }
+    ]
+  },
+  "version": 1
+}
