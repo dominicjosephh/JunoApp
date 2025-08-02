@@ -35,7 +35,7 @@ final class JunoAPIClient {
     /// - Parameters:
     ///   - baseURL: The base URL of your API (for example, your Digital Ocean droplet).
     ///   - session: URLSession to use; defaults to `.shared`.
-    init(baseURL: String = "https://djpresence.com", session: URLSession = .shared) {
+    init(baseURL: String = "http://127.0.0.1:8000", session: URLSession = .shared) {
         self.baseURL = baseURL
         self.session = session
     }

@@ -15,7 +15,7 @@ final class SpotifyManager: ObservableObject {
     @Published var errorMessage: String? = nil
     
     private var accessToken: String? = nil
-    private let baseURL = "http://localhost:8000" // Your backend URL
+    private let baseURL = "http://127.0.0.1:8000" // Your backend URL
     private var cancellables = Set<AnyCancellable>()
     
     private init() {}
