@@ -24,6 +24,12 @@ struct RootTabView: View {
                         Text("Memory")
                     }
                 
+                StarvationGameView()
+                    .tabItem {
+                        Image(systemName: "gamecontroller.fill")
+                        Text("Game")
+                    }
+                
                 SpotifyView()
                     .tabItem {
                         Image(systemName: "music.note")
