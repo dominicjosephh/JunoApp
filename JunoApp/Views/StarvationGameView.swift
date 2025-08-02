@@ -99,16 +99,20 @@ struct StarvationGameView: View {
                         }
                     }
                 } else {
-                    Button("Restart Game") {
-                        gameState.reset()
+                    if #available(iOS 16.0, *) {
+                        Button("Restart Game") {
+                            gameState.reset()
+                        }
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.blue)
+                        .cornerRadius(10)
+                    } else {
+                        // Fallback on earlier versions
                     }
-                    .font(.title2)
-                    .fontWeight(.bold)
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.blue)
-                    .cornerRadius(10)
                 }
                 
                 Spacer()
