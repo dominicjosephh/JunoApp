@@ -134,7 +134,12 @@ struct StarvationGameView: View {
             
         case .rest:
             gameState.gameMessage = "Player \(gameState.currentPlayer) rested"
-            
+            if gameState.currentPlayer == 1 {
+                gameState.player1Hunger = min(100, gameState.player1Hunger + 20)
+            } else {
+                gameState.player2Hunger = min(100, gameState.player2Hunger + 20)
+            }
+            gameState.gameMessage = "Player \(gameState.currentPlayer) rested and restored 20 energy"
         case .shareFood:
             if gameState.currentPlayer == 1 {
                 gameState.player2Hunger = min(100, gameState.player2Hunger + 20)
